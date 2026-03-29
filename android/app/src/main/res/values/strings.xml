@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Nihon</string>
+    <string name="title_activity_main">Nihon</string>
+    <string name="package_name">com.nihon.jlpt</string>
+    <string name="custom_url_scheme">com.nihon.jlpt</string>
+</resources>

@@ -1,5 +1,6 @@
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useAuth } from './context/AuthContext';
 import Header from './components/Header';
 import { BottomTabBar } from './components/TabBar';
 import Sidebar from './components/Sidebar';
@@ -12,21 +13,28 @@ import KatakanaPage from './pages/kana/KatakanaPage';
 import MNNPage from './pages/books/MNNPage';
 import GenkiPage from './pages/books/GenkiPage';
 import GrammarPage from './pages/grammar/GrammarPage';
+import ProfilePage from './pages/profile/ProfilePage';
+import AdminLayout from './pages/admin/AdminLayout';
+import DashboardPage from './pages/admin/DashboardPage';
+import UsersPage from './pages/admin/UsersPage';
+import CredentialsPage from './pages/admin/CredentialsPage';
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import LandingPage from './pages/auth/LandingPage';
+import SplashPage from './pages/auth/SplashPage';
 
-export default function App() {
+function ProtectedApp() {
   const location  = useLocation();
   const navigate  = useNavigate();
   const [search, setSearch]           = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isVocabPage = location.pathname === '/' ||
-    location.pathname.startsWith('/section') ||
-    location.pathname === '/search';
+  const isVocabPage = location.pathname === '/app' ||
+    location.pathname.startsWith('/app/section') ||
+    location.pathname.startsWith('/app/search');
 
-  // Close drawer on route change
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
-  // Close drawer on resize to desktop
   useEffect(() => {
     const onResize = () => { if (window.innerWidth >= 768) setSidebarOpen(false); };
     window.addEventListener('resize', onResize);
@@ -35,8 +43,8 @@ export default function App() {
 
   const handleSearch = (value) => {
     setSearch(value);
-    if (value.trim()) navigate(`/search?q=${encodeURIComponent(value)}`);
-    else navigate('/');
+    if (value.trim()) navigate(`/app/search?q=${encodeURIComponent(value)}`);
+    else navigate('/app');
   };
 
   return (
@@ -44,15 +52,9 @@ export default function App() {
       <Header onMenuClick={() => setSidebarOpen(true)} />
 
       <div className="flex max-w-screen-2xl mx-auto">
-        {/* Sidebar — always rendered (desktop sticky, mobile drawer) */}
-        <Sidebar
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        {/* Page content column */}
         <div className="flex-1 min-w-0 flex flex-col">
-          {/* Search bar — vocab pages only */}
           {isVocabPage && (
             <div className="bg-white border-b border-slate-200 sticky top-14 z-30">
               <div className="px-4 sm:px-5 py-2.5">
@@ -74,22 +76,62 @@ export default function App() {
 
           <main className="flex-1 px-4 py-5 sm:px-5 md:px-6 lg:px-8 md:py-7 pb-24 md:pb-8">
             <Routes>
-              <Route path="/"                   element={<IndexPage />} />
-              <Route path="/section/:sectionId" element={<SectionPage />} />
-              <Route path="/search"             element={<SearchPage />} />
-              <Route path="/test"               element={<TestPage />} />
-              <Route path="/hiragana"           element={<HiraganaPage />} />
-              <Route path="/katakana"           element={<KatakanaPage />} />
-              <Route path="/mnn"                element={<MNNPage />} />
-              <Route path="/genki"              element={<GenkiPage />} />
-              <Route path="/grammar"            element={<GrammarPage />} />
+              <Route index                              element={<IndexPage />} />
+              <Route path="section/:sectionId"          element={<SectionPage />} />
+              <Route path="search"                      element={<SearchPage />} />
+              <Route path="test"                        element={<TestPage />} />
+              <Route path="hiragana"                    element={<HiraganaPage />} />
+              <Route path="katakana"                    element={<KatakanaPage />} />
+              <Route path="mnn"                         element={<MNNPage />} />
+              <Route path="genki"                       element={<GenkiPage />} />
+              <Route path="grammar"                     element={<GrammarPage />} />
+              <Route path="profile"                     element={<ProfilePage />} />
+              <Route path="*"                           element={<Navigate to="/app" replace />} />
             </Routes>
           </main>
         </div>
       </div>
 
-      {/* Mobile bottom tab bar */}
       <BottomTabBar />
     </div>
+  );
+}
+
+function RequireAuth({ children }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+  return children;
+}
+
+function RequireAdmin({ children }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'admin') return <Navigate to="/app" replace />;
+  return children;
+}
+
+export default function App() {
+  const { user } = useAuth();
+  const homeRoute = user?.role === 'admin' ? '/admin' : '/app';
+
+  return (
+    <Routes>
+      <Route path="/"         element={<SplashPage />} />
+      <Route path="/welcome"  element={user ? <Navigate to={homeRoute} replace /> : <LandingPage />} />
+      <Route path="/login"    element={user ? <Navigate to={homeRoute} replace /> : <LoginPage />} />
+      <Route path="/register" element={user ? <Navigate to={homeRoute} replace /> : <RegisterPage />} />
+
+      {/* Admin routes */}
+      <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
+        <Route index          element={<DashboardPage />} />
+        <Route path="users"       element={<UsersPage />} />
+        <Route path="credentials" element={<CredentialsPage />} />
+      </Route>
+
+      {/* App routes */}
+      <Route path="/app/*" element={<RequireAuth><ProtectedApp /></RequireAuth>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { D, allSecs, displayName, getLevel, shuffle } from '../../data';
+import { HIRA, KATA } from '../../data/kanaData';
 import MultipleChoice from './MultipleChoice';
 import MatchCards from './MatchCards';
 import Flashcards from './Flashcards';
@@ -7,74 +8,58 @@ import TypeAnswer from './TypeAnswer';
 import TrueFalse from './TrueFalse';
 import SpeedRound from './SpeedRound';
 
-function getPool(level, section) {
+/* ── vocab pool ─────────────────────────────────────────── */
+function getVocabPool(level, section) {
   let pool = [];
   if (section !== 'all') {
     pool = D[section] || [];
   } else {
     allSecs.forEach(s => {
-      if (level === 'all' || s.startsWith(level)) {
-        pool = pool.concat(D[s] || []);
-      }
+      if (level === 'all' || s.startsWith(level)) pool = pool.concat(D[s] || []);
     });
   }
   return pool.filter(w => w.kana && w.english);
 }
 
+/* ── kana pool ──────────────────────────────────────────── */
+function getKanaPool(script, group) {
+  const src = script === 'hiragana' ? HIRA : KATA;
+  const groups = group === 'all'
+    ? [...src.basic, ...src.dakuten, ...src.combo]
+    : src[group] || [];
+  const flat = [];
+  groups.forEach(row => row.chars.forEach(ch => flat.push({ kana: ch.c, english: ch.r })));
+  return flat;
+}
+
 const MODES = [
-  {
-    id: 'choice',
-    icon: '🎯',
-    name: 'Multiple Choice',
-    desc: 'Pick the correct answer from 4 options',
-    color: 'bg-blue-500',
-  },
-  {
-    id: 'match',
-    icon: '🎴',
-    name: 'Match Cards',
-    desc: 'Match Japanese and English pairs',
-    color: 'bg-violet-500',
-  },
-  {
-    id: 'flash',
-    icon: '🃏',
-    name: 'Flashcards',
-    desc: 'Flip to reveal — rate yourself',
-    color: 'bg-emerald-500',
-  },
-  {
-    id: 'type',
-    icon: '⌨️',
-    name: 'Type Answer',
-    desc: 'Type the correct translation',
-    color: 'bg-amber-500',
-  },
-  {
-    id: 'tf',
-    icon: '✅',
-    name: 'True / False',
-    desc: 'Is the shown meaning correct?',
-    color: 'bg-rose-500',
-  },
-  {
-    id: 'speed',
-    icon: '⚡',
-    name: 'Speed Round',
-    desc: '7 seconds per question',
-    color: 'bg-orange-500',
-  },
+  { id: 'choice', icon: '🎯', name: 'Multiple Choice', desc: 'Pick the correct answer from 4 options', color: 'bg-blue-500' },
+  { id: 'match',  icon: '🎴', name: 'Match Cards',     desc: 'Match pairs side by side',              color: 'bg-violet-500' },
+  { id: 'flash',  icon: '🃏', name: 'Flashcards',      desc: 'Flip to reveal — rate yourself',        color: 'bg-emerald-500' },
+  { id: 'type',   icon: '⌨️', name: 'Type Answer',     desc: 'Type the correct romaji',               color: 'bg-amber-500' },
+  { id: 'tf',     icon: '✅', name: 'True / False',    desc: 'Is the shown meaning correct?',         color: 'bg-rose-500' },
+  { id: 'speed',  icon: '⚡', name: 'Speed Round',     desc: '7 seconds per question',                color: 'bg-orange-500' },
+];
+
+const CATEGORIES = [
+  { id: 'vocab',    label: 'Vocabulary', icon: '📖' },
+  { id: 'hiragana', label: 'Hiragana',   icon: '🌸' },
+  { id: 'katakana', label: 'Katakana',   icon: '⚡' },
 ];
 
 export default function TestPage() {
-  const [phase, setPhase]     = useState('setup');
-  const [level, setLevel]     = useState('all');
-  const [section, setSection] = useState('all');
-  const [qtype, setQtype]     = useState('jp2en');
-  const [count, setCount]     = useState(10);
-  const [mode, setMode]       = useState('choice');
-  const [gamePool, setGamePool]   = useState([]);
+  const [phase, setPhase]       = useState('setup');
+  const [category, setCategory] = useState('vocab');
+  const [level, setLevel]       = useState('all');
+  const [section, setSection]   = useState('all');
+  const [kanaGroup, setKanaGroup] = useState('all');
+  const [qtype, setQtype]       = useState('jp2en');
+  const [count, setCount]       = useState(10);
+  const [mode, setMode]         = useState('choice');
+  const [gamePool, setGamePool] = useState([]);
   const [gameWords, setGameWords] = useState([]);
+
+  const isKana = category !== 'vocab';
 
   const filteredSections = allSecs.filter(s => {
     if (level === 'all') return D[s] && D[s].length >= 4;
@@ -82,9 +67,11 @@ export default function TestPage() {
   });
 
   const startTest = () => {
-    const p = getPool(level, section);
+    const p = isKana
+      ? getKanaPool(category, kanaGroup)
+      : getVocabPool(level, section);
     if (p.length < 4) {
-      alert('Not enough words! Please choose a different section.');
+      alert('Not enough characters! Please choose a different group.');
       return;
     }
     const n = Math.min(count, p.length);
@@ -98,12 +85,33 @@ export default function TestPage() {
     return (
       <div className="max-w-2xl page-enter">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">Vocabulary Test</h2>
-          <p className="text-sm text-slate-500">Choose a mode and configure your session</p>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">Test</h2>
+          <p className="text-sm text-slate-500">Choose a category and mode</p>
+        </div>
+
+        {/* Category toggle */}
+        <div className="mb-5">
+          <div className="section-label mb-3">Category</div>
+          <div className="flex gap-2">
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => { setCategory(cat.id); setKanaGroup('all'); setSection('all'); }}
+                className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-xl border-2 cursor-pointer transition-all text-xs font-semibold ${
+                  category === cat.id
+                    ? 'border-n5 bg-n5-light text-n5 shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                }`}
+              >
+                <span className="text-lg">{cat.icon}</span>
+                {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Mode grid */}
-        <div className="mb-6">
+        <div className="mb-5">
           <div className="section-label mb-3">Test Mode</div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {MODES.map(m => (
@@ -135,31 +143,56 @@ export default function TestPage() {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
           <div className="section-label mb-4">Settings</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-            <div>
-              <label className="block text-[0.72rem] font-semibold text-slate-500 mb-1.5">Level</label>
-              <select
-                value={level}
-                onChange={e => { setLevel(e.target.value); setSection('all'); }}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:border-n5 focus:ring-0 transition-colors cursor-pointer"
-              >
-                <option value="all">All (N5 + N4)</option>
-                <option value="N5">N5 Only</option>
-                <option value="N4">N4 Only</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[0.72rem] font-semibold text-slate-500 mb-1.5">Section</label>
-              <select
-                value={section}
-                onChange={e => setSection(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:border-n5 transition-colors cursor-pointer"
-              >
-                <option value="all">All Sections</option>
-                {filteredSections.map(s => (
-                  <option key={s} value={s}>{getLevel(s)} — {displayName(s)} ({D[s].length})</option>
-                ))}
-              </select>
-            </div>
+
+            {/* Vocab-only settings */}
+            {!isKana && (
+              <>
+                <div>
+                  <label className="block text-[0.72rem] font-semibold text-slate-500 mb-1.5">Level</label>
+                  <select
+                    value={level}
+                    onChange={e => { setLevel(e.target.value); setSection('all'); }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:border-n5 focus:ring-0 transition-colors cursor-pointer"
+                  >
+                    <option value="all">All (N5 + N4)</option>
+                    <option value="N5">N5 Only</option>
+                    <option value="N4">N4 Only</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[0.72rem] font-semibold text-slate-500 mb-1.5">Section</label>
+                  <select
+                    value={section}
+                    onChange={e => setSection(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:border-n5 transition-colors cursor-pointer"
+                  >
+                    <option value="all">All Sections</option>
+                    {filteredSections.map(s => (
+                      <option key={s} value={s}>{getLevel(s)} — {displayName(s)} ({D[s].length})</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* Kana-only settings */}
+            {isKana && (
+              <div>
+                <label className="block text-[0.72rem] font-semibold text-slate-500 mb-1.5">Group</label>
+                <select
+                  value={kanaGroup}
+                  onChange={e => setKanaGroup(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:border-n5 transition-colors cursor-pointer"
+                >
+                  <option value="all">All Groups</option>
+                  <option value="basic">Basic (あ→ん)</option>
+                  <option value="dakuten">Dakuten / Voiced</option>
+                  <option value="combo">Combination</option>
+                </select>
+              </div>
+            )}
+
+            {/* Shared settings */}
             <div>
               <label className="block text-[0.72rem] font-semibold text-slate-500 mb-1.5">
                 {mode === 'match' ? 'Direction' : 'Question Type'}
@@ -169,9 +202,17 @@ export default function TestPage() {
                 onChange={e => setQtype(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:border-n5 transition-colors cursor-pointer"
               >
-                <option value="jp2en">Japanese → English</option>
-                <option value="en2jp">English → Japanese</option>
-                {mode === 'choice' && <option value="mixed">Mixed</option>}
+                {isKana
+                  ? <>
+                      <option value="jp2en">Character → Romaji</option>
+                      <option value="en2jp">Romaji → Character</option>
+                    </>
+                  : <>
+                      <option value="jp2en">Japanese → English</option>
+                      <option value="en2jp">English → Japanese</option>
+                      {mode === 'choice' && <option value="mixed">Mixed</option>}
+                    </>
+                }
               </select>
             </div>
             <div>
