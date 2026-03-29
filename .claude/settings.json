@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /home/tw10543/nihon/*.js /home/tw10543/nihon/*.ts /home/tw10543/nihon/*.json)",
+      "Bash(ls /home/tw10543/nihon/*.js /home/tw10543/nihon/*.ts /home/tw10543/nihon/*.json)",
+      "Bash(npm run:*)"
+    ],
+    "additionalDirectories": [
+      "/home/tw10543/nihon/src/pages"
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+// KATAKANA DATA extracted from new.html
+var KATA = {
+  basic:[
+    {r:'a-row',chars:[{c:'ア',r:'a',h:'あ'},{c:'イ',r:'i',h:'い'},{c:'ウ',r:'u',h:'う'},{c:'エ',r:'e',h:'え'},{c:'オ',r:'o',h:'お'}]},
+    {r:'ka-row',chars:[{c:'カ',r:'ka',h:'か'},{c:'キ',r:'ki',h:'き'},{c:'ク',r:'ku',h:'く'},{c:'ケ',r:'ke',h:'け'},{c:'コ',r:'ko',h:'こ'}]},
+    {r:'sa-row',chars:[{c:'サ',r:'sa',h:'さ'},{c:'シ',r:'shi',h:'し'},{c:'ス',r:'su',h:'す'},{c:'セ',r:'se',h:'せ'},{c:'ソ',r:'so',h:'そ'}]},
+    {r:'ta-row',chars:[{c:'タ',r:'ta',h:'た'},{c:'チ',r:'chi',h:'ち'},{c:'ツ',r:'tsu',h:'つ'},{c:'テ',r:'te',h:'て'},{c:'ト',r:'to',h:'と'}]},
+    {r:'na-row',chars:[{c:'ナ',r:'na',h:'な'},{c:'ニ',r:'ni',h:'に'},{c:'ヌ',r:'nu',h:'ぬ'},{c:'ネ',r:'ne',h:'ね'},{c:'ノ',r:'no',h:'の'}]},
+    {r:'ha-row',chars:[{c:'ハ',r:'ha',h:'は'},{c:'ヒ',r:'hi',h:'ひ'},{c:'フ',r:'fu',h:'ふ'},{c:'ヘ',r:'he',h:'へ'},{c:'ホ',r:'ho',h:'ほ'}]},
+    {r:'ma-row',chars:[{c:'マ',r:'ma',h:'ま'},{c:'ミ',r:'mi',h:'み'},{c:'ム',r:'mu',h:'む'},{c:'メ',r:'me',h:'め'},{c:'モ',r:'mo',h:'も'}]},
+    {r:'ya-row',chars:[{c:'ヤ',r:'ya',h:'や'},{c:'ユ',r:'yu',h:'ゆ'},{c:'ヨ',r:'yo',h:'よ'}]},
+    {r:'ra-row',chars:[{c:'ラ',r:'ra',h:'ら'},{c:'リ',r:'ri',h:'り'},{c:'ル',r:'ru',h:'る'},{c:'レ',r:'re',h:'れ'},{c:'ロ',r:'ro',h:'ろ'}]},
+    {r:'wa-row',chars:[{c:'ワ',r:'wa',h:'わ'},{c:'ヲ',r:'wo',h:'を'},{c:'ン',r:'n',h:'ん'}]}
+  ],
+  dakuten:[
+    {r:'ga-row',chars:[{c:'ガ',r:'ga'},{c:'ギ',r:'gi'},{c:'グ',r:'gu'},{c:'ゲ',r:'ge'},{c:'ゴ',r:'go'}]},
+    {r:'za-row',chars:[{c:'ザ',r:'za'},{c:'ジ',r:'ji'},{c:'ズ',r:'zu'},{c:'ゼ',r:'ze'},{c:'ゾ',r:'zo'}]},
+    {r:'da-row',chars:[{c:'ダ',r:'da'},{c:'ヂ',r:'ji*'},{c:'ヅ',r:'zu*'},{c:'デ',r:'de'},{c:'ド',r:'do'}]},
+    {r:'ba-row',chars:[{c:'バ',r:'ba'},{c:'ビ',r:'bi'},{c:'ブ',r:'bu'},{c:'ベ',r:'be'},{c:'ボ',r:'bo'}]},
+    {r:'pa-row',chars:[{c:'パ',r:'pa'},{c:'ピ',r:'pi'},{c:'プ',r:'pu'},{c:'ペ',r:'pe'},{c:'ポ',r:'po'}]}
+  ],
+  combo:[
+    {r:'kya-row',chars:[{c:'キャ',r:'kya'},{c:'キュ',r:'kyu'},{c:'キョ',r:'kyo'}]},
+    {r:'sha-row',chars:[{c:'シャ',r:'sha'},{c:'シュ',r:'shu'},{c:'ショ',r:'sho'}]},
+    {r:'cha-row',chars:[{c:'チャ',r:'cha'},{c:'チュ',r:'chu'},{c:'チョ',r:'cho'}]},
+    {r:'nya-row',chars:[{c:'ニャ',r:'nya'},{c:'ニュ',r:'nyu'},{c:'ニョ',r:'nyo'}]},
+    {r:'hya-row',chars:[{c:'ヒャ',r:'hya'},{c:'ヒュ',r:'hyu'},{c:'ヒョ',r:'hyo'}]},
+    {r:'mya-row',chars:[{c:'ミャ',r:'mya'},{c:'ミュ',r:'myu'},{c:'ミョ',r:'myo'}]},
+    {r:'rya-row',chars:[{c:'リャ',r:'rya'},{c:'リュ',r:'ryu'},{c:'リョ',r:'ryo'}]},
+    {r:'gya-row',chars:[{c:'ギャ',r:'gya'},{c:'ギュ',r:'gyu'},{c:'ギョ',r:'gyo'}]},
+    {r:'ja-row',chars:[{c:'ジャ',r:'ja'},{c:'ジュ',r:'ju'},{c:'ジョ',r:'jo'}]},
+    {r:'bya-row',chars:[{c:'ビャ',r:'bya'},{c:'ビュ',r:'byu'},{c:'ビョ',r:'byo'}]},
+    {r:'pya-row',chars:[{c:'ピャ',r:'pya'},{c:'ピュ',r:'pyu'},{c:'ピョ',r:'pyo'}]},
+    {r:'foreign-sounds',chars:[{c:'ファ',r:'fa'},{c:'フィ',r:'fi'},{c:'フェ',r:'fe'},{c:'フォ',r:'fo'},{c:'ウィ',r:'wi'},{c:'ウェ',r:'we'},{c:'ウォ',r:'wo2'},{c:'ティ',r:'ti'},{c:'ディ',r:'di'},{c:'ドゥ',r:'du'}]}
+  ]
+};
