@@ -1,9 +1,20 @@
 import { useState } from 'react';
-import { GENKI } from '../../data/genkiData';
+import { useData } from '../../context/DataContext';
 
 export default function GenkiPage() {
-  const [lesson, setLesson] = useState(GENKI[0]);
-  const idx = GENKI.findIndex(l => l.n === lesson.n);
+  const { GENKI = [] } = useData() || {};
+  const [lesson, setLesson] = useState(null);
+  const active = lesson || GENKI[0];
+  const idx = active ? GENKI.findIndex(l => l.n === active.n) : -1;
+
+  if (!active) {
+    return (
+      <div className="max-w-4xl page-enter">
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">げんき — Genki</h2>
+        <p className="text-sm text-slate-400">No lesson data available yet.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl page-enter">
@@ -21,8 +32,9 @@ export default function GenkiPage() {
             <button
               key={l.n}
               onClick={() => setLesson(l)}
+
               className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg text-xs font-semibold transition-all cursor-pointer border-none ${
-                lesson.n === l.n
+                active.n === l.n
                   ? 'bg-amber-500 text-white shadow-sm'
                   : 'bg-white border border-slate-200 text-slate-600 hover:border-amber-300 hover:text-amber-600'
               }`}
@@ -39,11 +51,11 @@ export default function GenkiPage() {
         <div className="px-6 py-5 border-b border-slate-100 bg-amber-50/50">
           <div className="flex items-center gap-3 flex-wrap">
             <span className="px-3 py-1 rounded-lg text-xs font-bold text-amber-600 bg-white border border-amber-200">
-              Lesson {lesson.n}
+              Lesson {active.n}
             </span>
             <div>
-              <div className="text-lg font-bold text-slate-900" style={{fontFamily:'Noto Sans JP,sans-serif'}}>{lesson.title}</div>
-              <div className="text-sm text-slate-500">{lesson.en}</div>
+              <div className="text-lg font-bold text-slate-900" style={{fontFamily:'Noto Sans JP,sans-serif'}}>{active.title}</div>
+              <div className="text-sm text-slate-500">{active.en}</div>
             </div>
           </div>
         </div>
@@ -53,7 +65,7 @@ export default function GenkiPage() {
           <div>
             <div className="section-label mb-3">Grammar Points</div>
             <ul className="space-y-2">
-              {lesson.grammar.map((g, i) => (
+              {active.grammar.map((g, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 shrink-0" />
                   <span className="text-slate-700 leading-relaxed">{g}</span>
@@ -66,7 +78,7 @@ export default function GenkiPage() {
           <div>
             <div className="section-label mb-3">Key Vocabulary</div>
             <div className="flex flex-wrap gap-2">
-              {lesson.vocab.map((v, i) => (
+              {active.vocab.map((v, i) => (
                 <div
                   key={i}
                   className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 hover:border-amber-300 hover:bg-amber-50 transition-colors cursor-default"

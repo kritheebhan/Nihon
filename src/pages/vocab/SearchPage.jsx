@@ -1,7 +1,8 @@
 import { useSearchParams, Link } from 'react-router-dom';
-import { D, displayName, getLevel } from '../../data';
+import { useData, displayName, getLevel } from '../../context/DataContext';
 
 export default function SearchPage() {
+  const { D } = useData();
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
 
@@ -24,7 +25,7 @@ export default function SearchPage() {
   });
 
   return (
-    <div className="max-w-4xl page-enter">
+    <div className="max-w-4xl mx-auto page-enter">
       <div className="flex items-center gap-2 mb-6">
         <Link to="/" className="inline-flex items-center gap-1.5 text-[0.78rem] font-medium text-slate-500 hover:text-slate-900 transition-colors no-underline">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5"><path d="M10 12L6 8l4-4"/></svg>
@@ -66,11 +67,11 @@ export default function SearchPage() {
             <tbody>
               {results.slice(0, 150).map((r, i) => {
                 const level = getLevel(r.sec);
-                const isN5 = level === 'N5';
+                const badgeClass = level === 'N5' ? 'badge-n5' : level === 'N4' ? 'badge-n4' : 'badge-n3';
                 return (
                   <tr key={i} className="border-b border-slate-100 last:border-0">
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <span className={isN5 ? 'badge-n5' : 'badge-n4'}>
+                      <span className={badgeClass}>
                         {level} · {displayName(r.sec)}
                       </span>
                     </td>

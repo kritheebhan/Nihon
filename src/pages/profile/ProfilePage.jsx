@@ -4,41 +4,35 @@ import { useAuth } from '../../context/AuthContext';
 import logo from '../../assets/icons/logo.png';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateName, changePassword } = useAuth();
   const navigate = useNavigate();
 
   const [editName, setEditName]       = useState(false);
   const [newName, setNewName]         = useState(user?.name || '');
   const [editPass, setEditPass]       = useState(false);
-  const [passForm, setPassForm]       = useState({ current: '', next: '', confirm: '' });
+  const [passForm, setPassForm]       = useState({ next: '', confirm: '' });
   const [msg, setMsg]                 = useState({ text: '', ok: true });
 
   /* ── Save name ── */
-  const saveName = () => {
+  const saveName = async () => {
     if (!newName.trim()) return;
-    const users = JSON.parse(localStorage.getItem('nihon_users') || '[]');
-    const idx = users.findIndex(u => u.email === user.email);
-    if (idx !== -1) { users[idx].name = newName.trim(); localStorage.setItem('nihon_users', JSON.stringify(users)); }
-    const session = { ...user, name: newName.trim() };
-    localStorage.setItem('nihon_user', JSON.stringify(session));
-    window.location.reload();          // reload so AuthContext picks up new name
+    const result = await updateName(newName.trim());
+    if (result.error) setMsg({ text: result.error, ok: false });
+    else { setEditName(false); setMsg({ text: 'Name updated', ok: true }); }
   };
 
   /* ── Save password ── */
-  const savePass = () => {
-    const users = JSON.parse(localStorage.getItem('nihon_users') || '[]');
-    const found = users.find(u => u.email === user.email);
-    if (!found || found.password !== passForm.current) return setMsg({ text: 'Current password is wrong', ok: false });
+  const savePass = async () => {
     if (passForm.next.length < 6)     return setMsg({ text: 'New password must be at least 6 characters', ok: false });
     if (passForm.next !== passForm.confirm) return setMsg({ text: 'Passwords do not match', ok: false });
-    found.password = passForm.next;
-    localStorage.setItem('nihon_users', JSON.stringify(users));
+    const result = await changePassword(passForm.next);
+    if (result.error) return setMsg({ text: result.error, ok: false });
     setMsg({ text: 'Password updated successfully', ok: true });
     setEditPass(false);
-    setPassForm({ current: '', next: '', confirm: '' });
+    setPassForm({ next: '', confirm: '' });
   };
 
-  const handleLogout = () => { logout(); navigate('/welcome', { replace: true }); };
+  const handleLogout = async () => { await logout(); navigate('/welcome', { replace: true }); };
 
   return (
     <div className="max-w-lg mx-auto py-4">
@@ -106,7 +100,7 @@ export default function ProfilePage() {
 
         {editPass ? (
           <div className="px-5 py-4 space-y-3">
-            {[['current','Current Password'],['next','New Password'],['confirm','Confirm New Password']].map(([k,label]) => (
+            {[['next','New Password'],['confirm','Confirm New Password']].map(([k,label]) => (
               <div key={k}>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">{label}</label>
                 <input
@@ -134,20 +128,7 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* ── Storage info ── */}
-      <div className="bg-amber-50 border border-amber-100 rounded-2xl px-5 py-4 mb-4">
-        <div className="flex items-start gap-3">
-          <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-amber-500 mt-0.5 shrink-0">
-            <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"/>
-          </svg>
-          <div>
-            <p className="text-xs font-semibold text-amber-700 mb-0.5">Local Storage</p>
-            <p className="text-xs text-amber-600 leading-relaxed">
-              Your credentials are saved locally on this device in <code className="font-mono bg-amber-100 px-1 rounded">nihon_users</code>. No server is used.
-            </p>
-          </div>
-        </div>
-      </div>
+
 
       {/* ── Logout ── */}
       <button

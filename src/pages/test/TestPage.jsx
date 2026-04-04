@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { D, allSecs, displayName, getLevel, shuffle } from '../../data';
-import { HIRA, KATA } from '../../data/kanaData';
+import { useData, displayName, getLevel, shuffle } from '../../context/DataContext';
 import MultipleChoice from './MultipleChoice';
 import MatchCards from './MatchCards';
 import Flashcards from './Flashcards';
@@ -8,21 +7,24 @@ import TypeAnswer from './TypeAnswer';
 import TrueFalse from './TrueFalse';
 import SpeedRound from './SpeedRound';
 
-/* ── vocab pool ─────────────────────────────────────────── */
-function getVocabPool(level, section) {
+/* ── vocab pool (excludes kanji sections) ───────────────── */
+function getVocabPool(data, level, section) {
+  const { D = {}, allSecs = [] } = data;
   let pool = [];
   if (section !== 'all') {
     pool = D[section] || [];
   } else {
     allSecs.forEach(s => {
+      if (s.includes('Kanji')) return;
       if (level === 'all' || s.startsWith(level)) pool = pool.concat(D[s] || []);
     });
   }
-  return pool.filter(w => w.kana && w.english);
+  return pool.filter(w => (w.kana || w.english));
 }
 
 /* ── kana pool ──────────────────────────────────────────── */
-function getKanaPool(script, group) {
+function getKanaPool(data, script, group) {
+  const { HIRA = {}, KATA = {} } = data;
   const src = script === 'hiragana' ? HIRA : KATA;
   const groups = group === 'all'
     ? [...src.basic, ...src.dakuten, ...src.combo]
@@ -32,11 +34,39 @@ function getKanaPool(script, group) {
   return flat;
 }
 
+/* ── kanji pool ─────────────────────────────────────────── */
+function getKanjiPool(data, level, section, qtype) {
+  const { D = {}, n5KanjiSecs = [], n4KanjiSecs = [], n3KanjiSecs = [] } = data;
+  const allKanjiSecs = [...n5KanjiSecs, ...n4KanjiSecs, ...n3KanjiSecs];
+
+  let raw = [];
+  if (section !== 'all') {
+    raw = D[section] || [];
+  } else {
+    const secs = level === 'all' ? allKanjiSecs
+      : level === 'N5' ? n5KanjiSecs
+      : level === 'N4' ? n4KanjiSecs
+      : n3KanjiSecs;
+    secs.forEach(s => { raw = raw.concat(D[s] || []); });
+  }
+  // Transform so existing game components work:
+  // jp2en: show kanji → answer English
+  // en2jp: show English → answer kanji
+  // kanji2read: show kanji → answer reading (kana)
+  return raw
+    .filter(w => w.kanji && w.english)
+    .map(w => {
+      if (qtype === 'en2jp')      return { kana: w.english,  english: w.kanji, _kanji: true };
+      if (qtype === 'kanji2read') return { kana: w.kanji,    english: w.kana,  _kanji: true };
+      /* jp2en */                  return { kana: w.kanji,    english: w.english, _kanji: true };
+    });
+}
+
 const MODES = [
   { id: 'choice', icon: '🎯', name: 'Multiple Choice', desc: 'Pick the correct answer from 4 options', color: 'bg-blue-500' },
   { id: 'match',  icon: '🎴', name: 'Match Cards',     desc: 'Match pairs side by side',              color: 'bg-violet-500' },
   { id: 'flash',  icon: '🃏', name: 'Flashcards',      desc: 'Flip to reveal — rate yourself',        color: 'bg-emerald-500' },
-  { id: 'type',   icon: '⌨️', name: 'Type Answer',     desc: 'Type the correct romaji',               color: 'bg-amber-500' },
+  { id: 'type',   icon: '⌨️', name: 'Type Answer',     desc: 'Type the correct answer',               color: 'bg-amber-500' },
   { id: 'tf',     icon: '✅', name: 'True / False',    desc: 'Is the shown meaning correct?',         color: 'bg-rose-500' },
   { id: 'speed',  icon: '⚡', name: 'Speed Round',     desc: '7 seconds per question',                color: 'bg-orange-500' },
 ];
@@ -45,33 +75,62 @@ const CATEGORIES = [
   { id: 'vocab',    label: 'Vocabulary', icon: '📖' },
   { id: 'hiragana', label: 'Hiragana',   icon: '🌸' },
   { id: 'katakana', label: 'Katakana',   icon: '⚡' },
+  { id: 'kanji',    label: 'Kanji',      icon: '漢' },
 ];
 
 export default function TestPage() {
-  const [phase, setPhase]       = useState('setup');
-  const [category, setCategory] = useState('vocab');
-  const [level, setLevel]       = useState('all');
-  const [section, setSection]   = useState('all');
+  const data = useData() || {};
+  const {
+    D = {},
+    allSecs = [],
+    n5KanjiSecs = [],
+    n4KanjiSecs = [],
+    n3KanjiSecs = [],
+  } = data;
+
+  const allKanjiSecs = [...n5KanjiSecs, ...n4KanjiSecs, ...n3KanjiSecs];
+
+  const [phase, setPhase]         = useState('setup');
+  const [category, setCategory]   = useState('vocab');
+  const [level, setLevel]         = useState('all');
+  const [section, setSection]     = useState('all');
   const [kanaGroup, setKanaGroup] = useState('all');
-  const [qtype, setQtype]       = useState('jp2en');
-  const [count, setCount]       = useState(10);
-  const [mode, setMode]         = useState('choice');
-  const [gamePool, setGamePool] = useState([]);
+  const [kanjiLevel, setKanjiLevel] = useState('all');
+  const [kanjiSection, setKanjiSection] = useState('all');
+  const [qtype, setQtype]         = useState('jp2en');
+  const [count, setCount]         = useState(10);
+  const [mode, setMode]           = useState('choice');
+  const [gamePool, setGamePool]   = useState([]);
   const [gameWords, setGameWords] = useState([]);
 
-  const isKana = category !== 'vocab';
+  const isKana  = category === 'hiragana' || category === 'katakana';
+  const isKanji = category === 'kanji';
+  const isVocab = category === 'vocab';
 
-  const filteredSections = allSecs.filter(s => {
+  // Vocab sections (exclude kanji)
+  const filteredVocabSections = allSecs.filter(s => {
+    if (s.includes('Kanji')) return false;
     if (level === 'all') return D[s] && D[s].length >= 4;
     return s.startsWith(level) && D[s] && D[s].length >= 4;
   });
 
+  // Kanji sections for selector
+  const filteredKanjiSections = (() => {
+    const base = kanjiLevel === 'all' ? allKanjiSecs
+      : kanjiLevel === 'N5' ? n5KanjiSecs
+      : kanjiLevel === 'N4' ? n4KanjiSecs
+      : n3KanjiSecs;
+    return base.filter(s => D[s] && D[s].length >= 4);
+  })();
+
   const startTest = () => {
-    const p = isKana
-      ? getKanaPool(category, kanaGroup)
-      : getVocabPool(level, section);
+    let p;
+    if (isKana)        p = getKanaPool(data, category, kanaGroup);
+    else if (isKanji)  p = getKanjiPool(data, kanjiLevel, kanjiSection, qtype);
+    else               p = getVocabPool(data, level, section);
+
     if (p.length < 4) {
-      alert('Not enough characters! Please choose a different group.');
+      alert('Not enough items! Please choose a different group.');
       return;
     }
     const n = Math.min(count, p.length);
@@ -83,7 +142,7 @@ export default function TestPage() {
 
   if (phase === 'setup') {
     return (
-      <div className="max-w-2xl page-enter">
+      <div className="max-w-2xl mx-auto page-enter">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">Test</h2>
           <p className="text-sm text-slate-500">Choose a category and mode</p>
@@ -96,14 +155,23 @@ export default function TestPage() {
             {CATEGORIES.map(cat => (
               <button
                 key={cat.id}
-                onClick={() => { setCategory(cat.id); setKanaGroup('all'); setSection('all'); }}
+                onClick={() => {
+                  setCategory(cat.id);
+                  setKanaGroup('all');
+                  setSection('all');
+                  setKanjiSection('all');
+                  setQtype('jp2en');
+                }}
                 className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-xl border-2 cursor-pointer transition-all text-xs font-semibold ${
                   category === cat.id
                     ? 'border-n5 bg-n5-light text-n5 shadow-sm'
                     : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                 }`}
               >
-                <span className="text-lg">{cat.icon}</span>
+                <span className={`leading-none ${cat.id === 'kanji' ? 'text-xl font-black' : 'text-lg'}`}
+                  style={cat.id === 'kanji' ? { fontFamily: 'Noto Sans JP, sans-serif' } : {}}>
+                  {cat.icon}
+                </span>
                 {cat.label}
               </button>
             ))}
@@ -145,7 +213,7 @@ export default function TestPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
 
             {/* Vocab-only settings */}
-            {!isKana && (
+            {isVocab && (
               <>
                 <div>
                   <label className="block text-[0.72rem] font-semibold text-slate-500 mb-1.5">Level</label>
@@ -154,9 +222,10 @@ export default function TestPage() {
                     onChange={e => { setLevel(e.target.value); setSection('all'); }}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:border-n5 focus:ring-0 transition-colors cursor-pointer"
                   >
-                    <option value="all">All (N5 + N4)</option>
+                    <option value="all">All (N5 + N4 + N3)</option>
                     <option value="N5">N5 Only</option>
                     <option value="N4">N4 Only</option>
+                    <option value="N3">N3 Only</option>
                   </select>
                 </div>
                 <div>
@@ -167,7 +236,7 @@ export default function TestPage() {
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:border-n5 transition-colors cursor-pointer"
                   >
                     <option value="all">All Sections</option>
-                    {filteredSections.map(s => (
+                    {filteredVocabSections.map(s => (
                       <option key={s} value={s}>{getLevel(s)} — {displayName(s)} ({D[s].length})</option>
                     ))}
                   </select>
@@ -192,6 +261,38 @@ export default function TestPage() {
               </div>
             )}
 
+            {/* Kanji-only settings */}
+            {isKanji && (
+              <>
+                <div>
+                  <label className="block text-[0.72rem] font-semibold text-slate-500 mb-1.5">Level</label>
+                  <select
+                    value={kanjiLevel}
+                    onChange={e => { setKanjiLevel(e.target.value); setKanjiSection('all'); }}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:border-n5 focus:ring-0 transition-colors cursor-pointer"
+                  >
+                    <option value="all">All (N5 + N4 + N3)</option>
+                    <option value="N5">N5 Kanji</option>
+                    <option value="N4">N4 Kanji</option>
+                    <option value="N3">N3 Kanji</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[0.72rem] font-semibold text-slate-500 mb-1.5">Section</label>
+                  <select
+                    value={kanjiSection}
+                    onChange={e => setKanjiSection(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:border-n5 transition-colors cursor-pointer"
+                  >
+                    <option value="all">All Sections</option>
+                    {filteredKanjiSections.map(s => (
+                      <option key={s} value={s}>{getLevel(s)} — {displayName(s)} ({D[s].length})</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+
             {/* Shared settings */}
             <div>
               <label className="block text-[0.72rem] font-semibold text-slate-500 mb-1.5">
@@ -202,17 +303,20 @@ export default function TestPage() {
                 onChange={e => setQtype(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:border-n5 transition-colors cursor-pointer"
               >
-                {isKana
-                  ? <>
-                      <option value="jp2en">Character → Romaji</option>
-                      <option value="en2jp">Romaji → Character</option>
-                    </>
-                  : <>
-                      <option value="jp2en">Japanese → English</option>
-                      <option value="en2jp">English → Japanese</option>
-                      {mode === 'choice' && <option value="mixed">Mixed</option>}
-                    </>
-                }
+                {isKana && <>
+                  <option value="jp2en">Character → Romaji</option>
+                  <option value="en2jp">Romaji → Character</option>
+                </>}
+                {isKanji && <>
+                  <option value="jp2en">Kanji 漢字 → Meaning</option>
+                  <option value="en2jp">Meaning → Kanji 漢字</option>
+                  <option value="kanji2read">Kanji 漢字 → Reading</option>
+                </>}
+                {isVocab && <>
+                  <option value="jp2en">Japanese → English</option>
+                  <option value="en2jp">English → Japanese</option>
+                  {mode === 'choice' && <option value="mixed">Mixed</option>}
+                </>}
               </select>
             </div>
             <div>
@@ -245,15 +349,32 @@ export default function TestPage() {
     pool: gamePool,
     words: gameWords,
     qtype,
+    category,
     onBack: () => setPhase('setup'),
     onFinish: () => setPhase('setup'),
   };
 
+  // Flash mode: full-width dark container, component owns its own header
+  if (mode === 'flash') {
+    return (
+      <div className="page-enter" style={{ maxWidth: 780, margin: '0 auto' }}>
+        <Flashcards {...commonProps} />
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-2xl page-enter">
+    <div className="max-w-2xl mx-auto page-enter">
+      <div className="flex justify-end mb-3">
+        <button
+          onClick={() => setPhase('setup')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-all cursor-pointer border-none text-xs font-semibold"
+        >
+          ✕ Exit Test
+        </button>
+      </div>
       {mode === 'choice' && <MultipleChoice {...commonProps} />}
       {mode === 'match'  && <MatchCards {...commonProps} />}
-      {mode === 'flash'  && <Flashcards {...commonProps} />}
       {mode === 'type'   && <TypeAnswer {...commonProps} />}
       {mode === 'tf'     && <TrueFalse {...commonProps} />}
       {mode === 'speed'  && <SpeedRound {...commonProps} />}

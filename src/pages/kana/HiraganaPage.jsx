@@ -1,19 +1,41 @@
 import { useState } from 'react';
-import { HIRA } from '../../data/kanaData';
+import { useData } from '../../context/DataContext';
 
 const groups = [
-  { key: 'basic',   label: 'Basic',        sub: 'あ → ん  ·  46 chars' },
-  { key: 'dakuten', label: 'Voiced',        sub: 'が → ぽ  ·  25 chars' },
-  { key: 'combo',   label: 'Combinations', sub: 'きゃ → ぴょ  ·  33 chars' },
+  { key: 'basic',   label: 'Basic'        },
+  { key: 'dakuten', label: 'Voiced'       },
+  { key: 'combo',   label: 'Combinations' },
 ];
 
 const views = [
-  { key: 'all', label: 'Full'    },
-  { key: 'jp',  label: 'Kana'   },
+  { key: 'all', label: 'Full'   },
+  { key: 'jp',  label: 'Kana'  },
   { key: 'rom', label: 'Romaji' },
 ];
 
+const sub = {
+  basic:   'あ → ん  ·  46 chars',
+  dakuten: 'が → ぽ  ·  25 chars',
+  combo:   'きゃ → ぴょ  ·  33 chars',
+};
+
+/* Render a kana character — splits combo chars so small kana renders smaller */
+function KanaChar({ c, color }) {
+  if (c.length === 2) {
+    return (
+      <span className="inline-flex items-center justify-center leading-none" style={{fontFamily:'Noto Sans JP,sans-serif'}}>
+        <span className={`text-2xl font-bold ${color}`}>{c[0]}</span>
+        <span className={`text-base font-bold ${color} -ml-0.5`}>{c[1]}</span>
+      </span>
+    );
+  }
+  return (
+    <span className={`text-2xl font-bold ${color} leading-none`} style={{fontFamily:'Noto Sans JP,sans-serif'}}>{c}</span>
+  );
+}
+
 export default function HiraganaPage() {
+  const { HIRA } = useData();
   const [group, setGroup] = useState('basic');
   const [view, setView]   = useState('all');
   const [popup, setPopup] = useState(null);
@@ -21,7 +43,8 @@ export default function HiraganaPage() {
   const rows = HIRA[group];
 
   return (
-    <div className="max-w-4xl page-enter">
+    <div className="max-w-4xl mx-auto page-enter">
+
       {/* Page header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
@@ -32,81 +55,101 @@ export default function HiraganaPage() {
         <p className="text-sm text-slate-500">The primary Japanese syllabary. Click any character for details.</p>
       </div>
 
-      {/* Controls row */}
-      <div className="flex items-start sm:items-center justify-between gap-2 sm:gap-4 mb-5 sm:mb-6 flex-wrap">
-        {/* Group tabs */}
-        <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
-          {groups.map(g => (
-            <button key={g.key} onClick={() => setGroup(g.key)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer border-none ${
-                group === g.key
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}>
-              {g.label}
-            </button>
-          ))}
-        </div>
-
-        {/* View toggle */}
-        <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
-          {views.map(v => (
-            <button key={v.key} onClick={() => setView(v.key)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer border-none ${
-                view === v.key
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}>
-              {v.label}
-            </button>
-          ))}
-        </div>
+      {/* Combined controls row */}
+      <div className="flex gap-1 p-1 bg-slate-100 rounded-xl mb-2 flex-wrap">
+        {groups.map(g => (
+          <button key={g.key} onClick={() => { setGroup(g.key); setPopup(null); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border-none ${
+              group === g.key ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}>
+            {g.label}
+          </button>
+        ))}
+        <div className="w-px bg-slate-300 mx-1 self-stretch" />
+        {views.map(v => (
+          <button key={v.key} onClick={() => setView(v.key)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border-none ${
+              view === v.key ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}>
+            {v.label}
+          </button>
+        ))}
       </div>
 
-      {/* Sub-label */}
-      <p className="text-xs text-slate-400 mb-5">{groups.find(g => g.key === group)?.sub}</p>
+      <p className="text-xs text-slate-400 mb-5">{sub[group]}</p>
 
-      {/* Character grid */}
-      {rows.map(row => (
-        <div key={row.r} className="mb-5">
-          <div className="section-label mb-2">{row.r}</div>
-          <div className="flex flex-wrap gap-2">
-            {row.chars.map(ch => (
-              <button
-                key={ch.c}
-                onClick={() => setPopup(ch)}
-                className="bg-white border border-slate-200 rounded-xl p-2.5 text-center hover:-translate-y-0.5 hover:border-pink-200 hover:shadow-md transition-all w-16 shrink-0 cursor-pointer shadow-sm"
-              >
-                {(view === 'all' || view === 'jp') && (
-                  <span className="block text-2xl font-bold text-pink-500 mb-0.5 leading-none" style={{fontFamily:'Noto Sans JP,sans-serif'}}>{ch.c}</span>
-                )}
-                {(view === 'all' || view === 'rom') && (
-                  <span className="block text-[0.65rem] font-semibold text-slate-500">{ch.r}</span>
-                )}
-                {view === 'all' && ch.e && (
-                  <span className="block text-[0.55rem] text-slate-400 mt-0.5 leading-tight">{ch.e}</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
+      {popup ? (
+        /* ── Character detail (inline, same page) ── */
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
 
-      {/* Popup */}
-      {popup && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setPopup(null)}>
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-8 text-center w-full sm:max-w-[260px] shadow-xl" onClick={e => e.stopPropagation()}>
-            <span className="block text-[5.5rem] font-bold text-pink-500 mb-3 leading-none" style={{fontFamily:'Noto Sans JP,sans-serif'}}>{popup.c}</span>
-            <div className="text-2xl font-black text-slate-800 mb-1">{popup.r}</div>
-            {popup.e && <div className="text-sm text-slate-500 mb-5">{popup.e}</div>}
+          {/* Detail header */}
+          <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
             <button
               onClick={() => setPopup(null)}
-              className="px-5 py-2 bg-slate-100 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer border-none"
+              className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
             >
-              Close
+              <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
+              </svg>
+              Back
             </button>
+            <span className="text-xs font-semibold text-pink-500 uppercase tracking-wider">Hiragana · {group}</span>
+          </div>
+
+          {/* Detail body */}
+          <div className="flex flex-col items-center justify-center py-12 px-8 bg-slate-50 gap-6">
+
+            {/* Large character */}
+            <div className="flex items-center justify-center">
+              {popup.c.length === 2 ? (
+                <span className="inline-flex items-end leading-none" style={{fontFamily:'Noto Sans JP,sans-serif'}}>
+                  <span className="font-bold text-pink-500" style={{fontSize:'9rem'}}>{popup.c[0]}</span>
+                  <span className="font-bold text-pink-500 mb-3" style={{fontSize:'5.5rem'}}>{popup.c[1]}</span>
+                </span>
+              ) : (
+                <span className="font-bold text-pink-500 leading-none" style={{fontFamily:'Noto Sans JP,sans-serif', fontSize:'11rem'}}>{popup.c}</span>
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-10 py-5 text-center">
+              <div className="text-4xl font-black text-slate-800 mb-2 tracking-wide">{popup.r}</div>
+              {popup.e && (
+                <div className="text-base text-slate-500">{popup.e}</div>
+              )}
+            </div>
           </div>
         </div>
+      ) : (
+        /* ── Character grid ── */
+        <>
+          {rows.map(row => (
+            <div key={row.r} className="mb-5">
+              <div className="section-label mb-2">{row.r}</div>
+              <div className="flex flex-wrap gap-2">
+                {row.chars.map(ch => (
+                  <button
+                    key={ch.c}
+                    onClick={() => setPopup(ch)}
+                    className="bg-white border border-slate-200 rounded-xl p-2.5 text-center hover:-translate-y-0.5 hover:border-pink-200 hover:shadow-md transition-all w-16 shrink-0 cursor-pointer shadow-sm"
+                  >
+                    {(view === 'all' || view === 'jp') && (
+                      <span className="block mb-0.5">
+                        <KanaChar c={ch.c} color="text-pink-500" />
+                      </span>
+                    )}
+                    {(view === 'all' || view === 'rom') && (
+                      <span className="block text-[0.65rem] font-semibold text-slate-500">{ch.r}</span>
+                    )}
+                    {view === 'all' && ch.e && (
+                      <span className="block text-[0.55rem] text-slate-400 mt-0.5 leading-tight">{ch.e}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </>
       )}
     </div>
   );

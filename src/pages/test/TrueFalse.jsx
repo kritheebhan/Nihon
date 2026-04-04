@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { shuffle } from './testUtils';
+import { shuffle, getDirectionLabel } from './testUtils';
 
-export default function TrueFalse({ pool, words: rawWords, qtype, onFinish, onBack }) {
+export default function TrueFalse({ pool, words: rawWords, qtype, category, onFinish, onBack }) {
   const [cards] = useState(() => shuffle(rawWords));
   const [idx, setIdx] = useState(0);
   const [score, setScore] = useState({ c: 0, w: 0 });
@@ -79,6 +79,9 @@ export default function TrueFalse({ pool, words: rawWords, qtype, onFinish, onBa
   }
 
   const { w, displayed, isCorrect, isJp2En } = pair;
+  const isKanji = category === 'kanji';
+  const showKanjiFont = isKanji && isJp2En;
+  const { label: dirLabel } = getDirectionLabel(category, qtype);
   const pct = Math.round((idx / total) * 100);
 
   const answer = (userSaysTrue) => {
@@ -132,12 +135,16 @@ export default function TrueFalse({ pool, words: rawWords, qtype, onFinish, onBa
       {/* Card */}
       <div className="bg-white rounded-2xl border border-slate-200 p-7 mb-4 shadow-md text-center">
         <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
-          {isJp2En ? 'Does this Japanese word mean…?' : 'Is this the correct Japanese for…?'}
+          {isKanji
+            ? dirLabel
+            : isJp2En ? 'Does this Japanese word mean…?' : 'Is this the correct Japanese for…?'}
         </div>
 
         {/* Word */}
-        <div className={`font-extrabold mb-3 ${isJp2En ? 'text-5xl' : 'text-3xl'}`}
-          style={{ fontFamily: 'Noto Sans JP, sans-serif' }}>
+        <div
+          className={`font-extrabold mb-3 ${showKanjiFont ? 'text-7xl' : isJp2En ? 'text-5xl' : 'text-3xl'}`}
+          style={showKanjiFont ? { fontFamily: 'Noto Sans JP, sans-serif' } : {}}
+        >
           {isJp2En ? (w.kana || w.kanji || '') : (w.english || '')}
         </div>
 

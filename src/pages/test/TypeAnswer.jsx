@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
-import { shuffle } from './testUtils';
+import { shuffle, getDirectionLabel } from './testUtils';
 
-export default function TypeAnswer({ pool, words: rawWords, qtype, onFinish, onBack }) {
+export default function TypeAnswer({ pool, words: rawWords, qtype, category, onFinish, onBack }) {
   const [cards] = useState(() => shuffle(rawWords));
   const [idx, setIdx] = useState(0);
   const [input, setInput] = useState('');
@@ -66,6 +66,9 @@ export default function TypeAnswer({ pool, words: rawWords, qtype, onFinish, onB
 
   const w = cards[idx];
   const isJp2En = qtype !== 'en2jp';
+  const isKanji = category === 'kanji';
+  const showKanjiFont = isKanji && isJp2En;
+  const { label: dirLabel, color: dirColor } = getDirectionLabel(category, qtype);
   const question = isJp2En ? (w.kana || w.kanji || '') : (w.english || '');
   const correctAnswer = isJp2En ? (w.english || '') : (w.kana || w.kanji || '');
   const pct = Math.round((idx / total) * 100);
@@ -126,21 +129,26 @@ export default function TypeAnswer({ pool, words: rawWords, qtype, onFinish, onB
 
       <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-4 shadow-md">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${isJp2En ? 'bg-n5-light text-n5' : 'bg-n4-light text-n4'}`}>
-            {isJp2En ? 'Japanese → English' : 'English → Japanese'}
+          <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${dirColor}`}>
+            {dirLabel}
           </div>
-          <button
-            onClick={() => setShowRomaji(prev => !prev)}
-            className={`px-3 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer ${showRomaji ? 'bg-amber-50 text-amber-600 border-amber-300' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
-          >
-            {showRomaji ? '👁 Romaji ON' : '👁‍🗨 Romaji OFF'}
-          </button>
+          {!isKanji && (
+            <button
+              onClick={() => setShowRomaji(prev => !prev)}
+              className={`px-3 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer ${showRomaji ? 'bg-amber-50 text-amber-600 border-amber-300' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
+            >
+              {showRomaji ? '👁 Romaji ON' : '👁‍🗨 Romaji OFF'}
+            </button>
+          )}
         </div>
 
-        <div className={`font-extrabold mb-1.5 ${isJp2En ? 'text-4xl' : 'text-2xl'}`}>
+        <div
+          className={`font-extrabold mb-1.5 ${showKanjiFont ? 'text-6xl' : isJp2En ? 'text-4xl' : 'text-2xl'}`}
+          style={showKanjiFont ? { fontFamily: 'Noto Sans JP, sans-serif' } : {}}
+        >
           {question}
         </div>
-        {showRomaji && <div className="text-sm text-slate-400 mb-2 italic">Romaji: {w.romaji || '?'}</div>}
+        {!isKanji && showRomaji && <div className="text-sm text-slate-400 mb-2 italic">Romaji: {w.romaji || '?'}</div>}
 
         {/* Hint */}
         <div className="mb-4">
@@ -165,7 +173,12 @@ export default function TypeAnswer({ pool, words: rawWords, qtype, onFinish, onB
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isJp2En ? 'Type the English meaning...' : 'Type the Japanese reading...'}
+            placeholder={
+              isKanji && qtype === 'kanji2read' ? 'Type the reading (kana)...'
+              : isJp2En ? 'Type the English meaning...'
+              : isKanji ? 'Type the kanji character...'
+              : 'Type the Japanese reading...'
+            }
             disabled={answered}
             autoFocus
             className={`flex-1 px-4 py-3 border-2 rounded-lg text-sm outline-none transition-colors ${

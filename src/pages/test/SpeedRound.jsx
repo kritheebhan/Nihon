@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { shuffle } from './testUtils';
+import { shuffle, getDirectionLabel } from './testUtils';
 
 const TIME_PER_Q = 7; // seconds
 
-export default function SpeedRound({ pool, words: rawWords, qtype, onFinish, onBack }) {
+export default function SpeedRound({ pool, words: rawWords, qtype, category, onFinish, onBack }) {
   const [cards] = useState(() => shuffle(rawWords));
   const [idx, setIdx] = useState(0);
   const [score, setScore] = useState({ c: 0, w: 0 });
@@ -116,7 +116,10 @@ export default function SpeedRound({ pool, words: rawWords, qtype, onFinish, onB
   const w = cards[idx];
   if (!w) return null;
   const pct = Math.round((idx / total) * 100);
-  const isJp2En = currentQtype === 'jp2en';
+  const isJp2En = currentQtype !== 'en2jp';
+  const isKanji = category === 'kanji';
+  const showKanjiFont = isKanji && isJp2En;
+  const { label: dirLabel, color: dirColor } = getDirectionLabel(category, currentQtype);
   const timerPct = (timeLeft / TIME_PER_Q) * 100;
   const timerColor = timeLeft > 4 ? 'bg-green-500' : timeLeft > 2 ? 'bg-amber-500' : 'bg-red-500';
 
@@ -170,12 +173,14 @@ export default function SpeedRound({ pool, words: rawWords, qtype, onFinish, onB
 
       {/* Card */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-4 shadow-md">
-        <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-3 ${isJp2En ? 'bg-n5-light text-n5' : 'bg-n4-light text-n4'}`}>
-          {isJp2En ? 'Japanese → English' : 'English → Japanese'}
+        <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-3 ${dirColor}`}>
+          {dirLabel}
         </div>
 
-        <div className={`font-extrabold mb-5 ${isJp2En ? 'text-4xl' : 'text-2xl'}`}
-          style={isJp2En ? { fontFamily: 'Noto Sans JP, sans-serif' } : {}}>
+        <div
+          className={`font-extrabold mb-5 ${showKanjiFont ? 'text-6xl' : isJp2En ? 'text-4xl' : 'text-2xl'}`}
+          style={showKanjiFont ? { fontFamily: 'Noto Sans JP, sans-serif' } : {}}
+        >
           {isJp2En ? (w.kana || w.kanji || '') : (w.english || '')}
         </div>
 

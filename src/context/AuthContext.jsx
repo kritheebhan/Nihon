@@ -1,61 +1,98 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
-/* ── Seed default admin on first load ── */
-function seedAdmin() {
-  const users = JSON.parse(localStorage.getItem('nihon_users') || '[]');
-  if (!users.find(u => u.email === 'admin@nihongo.com')) {
-    users.unshift({
-      name: 'Admin',
-      email: 'admin@nihongo.com',
-      password: 'Admin@123',
-      role: 'admin',
-      createdAt: new Date().toISOString(),
-    });
-    localStorage.setItem('nihon_users', JSON.stringify(users));
-  }
-}
-seedAdmin();
-
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('nihon_user')); }
-    catch { return null; }
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const register = (name, email, password) => {
-    const users = JSON.parse(localStorage.getItem('nihon_users') || '[]');
-    if (users.find(u => u.email === email)) return { error: 'Email already registered' };
-    const newUser = { name, email, password, role: 'user', createdAt: new Date().toISOString() };
-    users.push(newUser);
-    localStorage.setItem('nihon_users', JSON.stringify(users));
-    const session = { name, email, role: 'user' };
-    localStorage.setItem('nihon_user', JSON.stringify(session));
-    setUser(session);
+  /* ── Fetch profile from profiles table ── */
+  const fetchProfile = async (authUser) => {
+    if (!authUser) { setUser(null); return null; }
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('name, email, role')
+      .eq('id', authUser.id)
+      .single();
+    if (data) {
+      const profile = { id: authUser.id, name: data.name, email: data.email, role: data.role };
+      setUser(profile);
+      return profile;
+    }
+    if (error) console.error('[fetchProfile] DB query failed:', error.message);
+    // Fallback to auth metadata
+    const fallback = {
+      id: authUser.id,
+      name: authUser.user_metadata?.name || '',
+      email: authUser.email,
+      role: authUser.user_metadata?.role || 'user',
+    };
+    setUser(fallback);
+    return fallback;
+  };
+
+  /* ── Init: check existing session ── */
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) fetchProfile(session.user);
+      else setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) fetchProfile(session.user).then(() => setLoading(false));
+      else { setUser(null); setLoading(false); }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  /* ── Login ── */
+  const login = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+    // Update last_login
+    await supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', data.user.id);
+    const profile = await fetchProfile(data.user);
+    return { ok: true, role: profile?.role || 'user' };
+  };
+
+  /* ── Register ── */
+  const register = async (name, email, password) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name, role: 'user' } },
+    });
+    if (error) return { error: error.message };
+    if (data.user) await fetchProfile(data.user);
     return { ok: true };
   };
 
-  const login = (email, password) => {
-    const users = JSON.parse(localStorage.getItem('nihon_users') || '[]');
-    const found = users.find(u => u.email === email && u.password === password);
-    if (!found) return { error: 'Invalid email or password' };
-    /* update lastLogin */
-    found.lastLogin = new Date().toISOString();
-    localStorage.setItem('nihon_users', JSON.stringify(users));
-    const session = { name: found.name, email: found.email, role: found.role || 'user' };
-    localStorage.setItem('nihon_user', JSON.stringify(session));
-    setUser(session);
-    return { ok: true, role: session.role };
-  };
-
-  const logout = () => {
-    localStorage.removeItem('nihon_user');
+  /* ── Logout ── */
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
   };
 
+  /* ── Update name ── */
+  const updateName = async (newName) => {
+    if (!user) return { error: 'Not logged in' };
+    const { error } = await supabase.from('profiles').update({ name: newName }).eq('id', user.id);
+    if (error) return { error: error.message };
+    setUser(u => ({ ...u, name: newName }));
+    return { ok: true };
+  };
+
+  /* ── Change password ── */
+  const changePassword = async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { error: error.message };
+    return { ok: true };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateName, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

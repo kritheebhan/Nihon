@@ -95,6 +95,9 @@ body {
   .badge-n4 {
     @apply inline-flex items-center px-2 py-0.5 rounded-md text-[0.65rem] font-bold bg-purple-50 text-n4 border border-n4-border;
   }
+  .badge-n3 {
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-[0.65rem] font-bold bg-rose-50 text-rose-600 border border-rose-200;
+  }
 
   /* ── Section label ── */
   .section-label {

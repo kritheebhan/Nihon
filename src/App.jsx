@@ -5,19 +5,22 @@ import Header from './components/Header';
 import { BottomTabBar } from './components/TabBar';
 import Sidebar from './components/Sidebar';
 import IndexPage from './pages/vocab/IndexPage';
+import HomePage from './pages/vocab/HomePage';
 import SectionPage from './pages/vocab/SectionPage';
 import SearchPage from './pages/vocab/SearchPage';
 import TestPage from './pages/test/TestPage';
+import KanjiPage from './pages/kanji/KanjiPage';
 import HiraganaPage from './pages/kana/HiraganaPage';
 import KatakanaPage from './pages/kana/KatakanaPage';
-import MNNPage from './pages/books/MNNPage';
-import GenkiPage from './pages/books/GenkiPage';
 import GrammarPage from './pages/grammar/GrammarPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import AdminLayout from './pages/admin/AdminLayout';
 import DashboardPage from './pages/admin/DashboardPage';
 import UsersPage from './pages/admin/UsersPage';
+import ContentPage from './pages/admin/ContentPage';
 import CredentialsPage from './pages/admin/CredentialsPage';
+import AnalyticsPage from './pages/admin/AnalyticsPage';
+import SettingsPage from './pages/admin/SettingsPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import LandingPage from './pages/auth/LandingPage';
@@ -29,7 +32,7 @@ function ProtectedApp() {
   const [search, setSearch]           = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isVocabPage = location.pathname === '/app' ||
+  const isVocabPage = location.pathname === '/app/vocabulary' ||
     location.pathname.startsWith('/app/section') ||
     location.pathname.startsWith('/app/search');
 
@@ -76,14 +79,14 @@ function ProtectedApp() {
 
           <main className="flex-1 px-4 py-5 sm:px-5 md:px-6 lg:px-8 md:py-7 pb-24 md:pb-8">
             <Routes>
-              <Route index                              element={<IndexPage />} />
+              <Route index                              element={<HomePage />} />
+              <Route path="vocabulary"                 element={<IndexPage />} />
               <Route path="section/:sectionId"          element={<SectionPage />} />
               <Route path="search"                      element={<SearchPage />} />
               <Route path="test"                        element={<TestPage />} />
+              <Route path="kanji"                       element={<KanjiPage />} />
               <Route path="hiragana"                    element={<HiraganaPage />} />
               <Route path="katakana"                    element={<KatakanaPage />} />
-              <Route path="mnn"                         element={<MNNPage />} />
-              <Route path="genki"                       element={<GenkiPage />} />
               <Route path="grammar"                     element={<GrammarPage />} />
               <Route path="profile"                     element={<ProfilePage />} />
               <Route path="*"                           element={<Navigate to="/app" replace />} />
@@ -112,8 +115,19 @@ function RequireAdmin({ children }) {
 }
 
 export default function App() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const homeRoute = user?.role === 'admin' ? '/admin' : '/app';
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-slate-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Routes>
@@ -126,7 +140,10 @@ export default function App() {
       <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
         <Route index          element={<DashboardPage />} />
         <Route path="users"       element={<UsersPage />} />
+        <Route path="content"     element={<ContentPage />} />
         <Route path="credentials" element={<CredentialsPage />} />
+        <Route path="analytics"   element={<AnalyticsPage />} />
+        <Route path="settings"    element={<SettingsPage />} />
       </Route>
 
       {/* App routes */}

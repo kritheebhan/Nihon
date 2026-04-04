@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { n5Secs, n4Secs, D, displayName } from '../data';
+import { useData, displayName } from '../context/DataContext';
 import logo from '../assets/icons/logo.png';
 
 /* ─── SVG Icons ───────────────────────────────────────── */
@@ -46,10 +46,21 @@ const Icon = ({ name, className = 'w-4 h-4' }) => {
           d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 3.741-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
       </svg>
     ),
+    home: (
+      <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round"
+          d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+      </svg>
+    ),
     about: (
       <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round"
           d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+      </svg>
+    ),
+    kanji: (
+      <svg viewBox="0 0 24 24" className={className}>
+        <text x="3" y="18" fontSize="16" fontFamily="serif" fill="currentColor">漢</text>
       </svg>
     ),
   };
@@ -57,18 +68,13 @@ const Icon = ({ name, className = 'w-4 h-4' }) => {
 };
 
 const NAV = [
-  { to: '/app',          label: 'Vocabulary', iconKey: 'vocab',    end: true },
-  { to: '/app/hiragana', label: 'Hiragana',   iconKey: 'hiragana' },
-  { to: '/app/katakana', label: 'Katakana',   iconKey: 'katakana' },
-  {
-    label: 'Grammar', iconKey: 'grammar', group: true,
-    children: [
-      { to: '/app/grammar', label: 'Grammar Points', iconKey: 'grammar' },
-      { to: '/app/mnn',     label: 'Min', iconKey: 'mnn'   },
-      { to: '/app/genki',   label: 'Gen',            iconKey: 'genki' },
-    ],
-  },
-  { to: '/app/test',     label: 'Test',       iconKey: 'test'     },
+  { to: '/app',             label: 'Home',       iconKey: 'home',   end: true },
+  { to: '/app/vocabulary',  label: 'Vocabulary', iconKey: 'vocab' },
+  { to: '/app/kanji',       label: 'Kanji',      iconKey: 'kanji' },
+  { to: '/app/hiragana',    label: 'Hiragana',   iconKey: 'hiragana' },
+  { to: '/app/katakana',    label: 'Katakana',   iconKey: 'katakana' },
+  { to: '/app/grammar',     label: 'Grammar',    iconKey: 'grammar' },
+  { to: '/app/test',        label: 'Test',       iconKey: 'test'     },
 ];
 
 function GrammarGroup({ item, onNavigate }) {
@@ -129,10 +135,58 @@ function GrammarGroup({ item, onNavigate }) {
   );
 }
 
+function VocabGroup({ level, color, activeColor, activeBg, sections, onNavigate }) {
+  const { D } = useData();
+  const location = useLocation();
+  const isAnyActive = sections.some(s => location.pathname === `/app/section/${encodeURIComponent(s)}`);
+  const [open, setOpen] = useState(isAnyActive);
+
+  return (
+    <div className="mb-1">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors border-none bg-transparent cursor-pointer ${
+          isAnyActive ? `${activeColor} font-semibold` : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+        }`}
+      >
+        <span className={`text-[0.6rem] font-bold uppercase tracking-widest ${color}`}>{level}</span>
+        <div className="flex-1 h-px bg-slate-100" />
+        <svg
+          viewBox="0 0 20 20" fill="currentColor"
+          className={`w-3 h-3 text-slate-400 transition-transform duration-200 shrink-0 ${open ? 'rotate-90' : ''}`}
+        >
+          <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div className="mt-0.5 mb-1">
+          {sections.map(s => (
+            <NavLink
+              key={s}
+              to={`/app/section/${encodeURIComponent(s)}`}
+              onClick={onNavigate}
+              className={({ isActive }) =>
+                `flex items-center justify-between mx-2 px-2.5 py-1.5 rounded-lg text-[0.75rem] transition-colors no-underline ${
+                  isActive ? `${activeBg} ${activeColor} font-semibold` : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                }`
+              }
+            >
+              <span className="truncate">{displayName(s)}</span>
+              <span className="text-[0.58rem] text-slate-400 shrink-0 ml-1 tabular-nums">{D[s].length}</span>
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SidebarContent({ onNavigate }) {
+  const { n5VocabSecs, n4VocabSecs } = useData();
   const location = useLocation();
   const isVocabPage =
-    location.pathname === '/app' ||
+    location.pathname === '/app/vocabulary' ||
     location.pathname.startsWith('/app/section') ||
     location.pathname === '/app/search';
 
@@ -175,56 +229,23 @@ function SidebarContent({ onNavigate }) {
 
       {/* ── Vocabulary Sections (only on vocab pages) ── */}
       {isVocabPage && (
-        <div className="flex-1 overflow-y-auto sidebar-scroll border-t border-slate-100 mt-1 pt-3 pb-3">
-          {/* N5 */}
-          <div className="mb-3">
-            <div className="px-3 mb-1 flex items-center gap-2">
-              <span className="text-[0.6rem] font-bold uppercase tracking-widest text-n5">N5</span>
-              <div className="flex-1 h-px bg-slate-100" />
-            </div>
-            {n5Secs.map(s => (
-              <NavLink
-                key={s}
-                to={`/app/section/${encodeURIComponent(s)}`}
-                onClick={onNavigate}
-                className={({ isActive }) =>
-                  `flex items-center justify-between mx-2 px-2.5 py-1.5 rounded-lg text-[0.75rem] transition-colors no-underline ${
-                    isActive
-                      ? 'bg-blue-50 text-n5 font-semibold'
-                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                  }`
-                }
-              >
-                <span className="truncate">{displayName(s)}</span>
-                <span className="text-[0.58rem] text-slate-400 shrink-0 ml-1 tabular-nums">{D[s].length}</span>
-              </NavLink>
-            ))}
-          </div>
-
-          {/* N4 */}
-          <div>
-            <div className="px-3 mb-1 flex items-center gap-2">
-              <span className="text-[0.6rem] font-bold uppercase tracking-widest text-n4">N4</span>
-              <div className="flex-1 h-px bg-slate-100" />
-            </div>
-            {n4Secs.map(s => (
-              <NavLink
-                key={s}
-                to={`/app/section/${encodeURIComponent(s)}`}
-                onClick={onNavigate}
-                className={({ isActive }) =>
-                  `flex items-center justify-between mx-2 px-2.5 py-1.5 rounded-lg text-[0.75rem] transition-colors no-underline ${
-                    isActive
-                      ? 'bg-purple-50 text-n4 font-semibold'
-                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                  }`
-                }
-              >
-                <span className="truncate">{displayName(s)}</span>
-                <span className="text-[0.58rem] text-slate-400 shrink-0 ml-1 tabular-nums">{D[s].length}</span>
-              </NavLink>
-            ))}
-          </div>
+        <div className="flex-1 overflow-y-auto sidebar-scroll border-t border-slate-100 mt-1 pt-2 pb-3 px-1">
+          <VocabGroup
+            level="N5"
+            color="text-n5"
+            activeColor="text-n5"
+            activeBg="bg-blue-50"
+            sections={n5VocabSecs}
+            onNavigate={onNavigate}
+          />
+          <VocabGroup
+            level="N4"
+            color="text-n4"
+            activeColor="text-n4"
+            activeBg="bg-purple-50"
+            sections={n4VocabSecs}
+            onNavigate={onNavigate}
+          />
         </div>
       )}
     </div>

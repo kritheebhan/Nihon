@@ -18,10 +18,9 @@ export default function RegisterPage() {
     if (form.password !== form.confirm) return setError('Passwords do not match');
     if (form.password.length < 6) return setError('Password must be at least 6 characters');
     setLoading(true);
-    await new Promise(r => setTimeout(r, 400));
-    const result = register(form.name, form.email, form.password);
+    const result = await register(form.name, form.email, form.password);
     if (result.error) { setError(result.error); setLoading(false); }
-    else navigate('/');
+    else navigate('/app');
   };
 
   return (

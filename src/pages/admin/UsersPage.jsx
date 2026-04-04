@@ -1,14 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 
 export default function UsersPage() {
   const [search, setSearch] = useState('');
-  const [users, setUsers]   = useState(() => JSON.parse(localStorage.getItem('nihon_users') || '[]'));
+  const [users, setUsers]   = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const deleteUser = (email) => {
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) setUsers(data);
+    setLoading(false);
+  };
+
+  const deleteUser = async (id, email) => {
     if (!window.confirm(`Delete user ${email}?`)) return;
-    const updated = users.filter(u => u.email !== email);
-    localStorage.setItem('nihon_users', JSON.stringify(updated));
-    setUsers(updated);
+    await supabase.from('profiles').delete().eq('id', id);
+    setUsers(users.filter(u => u.id !== id));
   };
 
   const filtered = users.filter(u =>
@@ -37,57 +52,61 @@ export default function UsersPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-100 bg-slate-50">
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">#</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">User</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Email</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Role</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Joined</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Last Login</th>
-              <th className="px-5 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-400 text-sm">No users found</td></tr>
-            )}
-            {filtered.map((u, i) => (
-              <tr key={u.email} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                <td className="px-5 py-3 text-slate-400 text-xs">{i + 1}</td>
-                <td className="px-5 py-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                      {u.name?.[0]?.toUpperCase()}
-                    </div>
-                    <span className="font-medium text-slate-800">{u.name}</span>
-                  </div>
-                </td>
-                <td className="px-5 py-3 text-slate-500">{u.email}</td>
-                <td className="px-5 py-3">
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${u.role === 'admin' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
-                    {u.role || 'user'}
-                  </span>
-                </td>
-                <td className="px-5 py-3 text-slate-400 text-xs">
-                  {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
-                </td>
-                <td className="px-5 py-3 text-slate-400 text-xs">
-                  {u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'Never'}
-                </td>
-                <td className="px-5 py-3">
-                  {u.role !== 'admin' && (
-                    <button onClick={() => deleteUser(u.email)}
-                      className="text-xs text-red-400 hover:text-red-600 font-medium border-none bg-transparent cursor-pointer transition-colors">
-                      Delete
-                    </button>
-                  )}
-                </td>
+        {loading ? (
+          <div className="px-5 py-8 text-center text-slate-400 text-sm">Loading users...</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50">
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">#</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">User</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Email</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Role</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Joined</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Last Login</th>
+                <th className="px-5 py-3" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.length === 0 && (
+                <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-400 text-sm">No users found</td></tr>
+              )}
+              {filtered.map((u, i) => (
+                <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                  <td className="px-5 py-3 text-slate-400 text-xs">{i + 1}</td>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        {u.name?.[0]?.toUpperCase()}
+                      </div>
+                      <span className="font-medium text-slate-800">{u.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3 text-slate-500">{u.email}</td>
+                  <td className="px-5 py-3">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${u.role === 'admin' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
+                      {u.role || 'user'}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 text-slate-400 text-xs">
+                    {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
+                  </td>
+                  <td className="px-5 py-3 text-slate-400 text-xs">
+                    {u.last_login ? new Date(u.last_login).toLocaleString() : 'Never'}
+                  </td>
+                  <td className="px-5 py-3">
+                    {u.role !== 'admin' && (
+                      <button onClick={() => deleteUser(u.id, u.email)}
+                        className="text-xs text-red-400 hover:text-red-600 font-medium border-none bg-transparent cursor-pointer transition-colors">
+                        Delete
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

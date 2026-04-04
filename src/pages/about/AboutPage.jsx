@@ -17,8 +17,7 @@ export default function AboutPage() {
         <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">About</h2>
         <p className="text-sm text-slate-600 leading-relaxed">
           Built to make studying Japanese more interactive — covering vocabulary flashcards,
-          multiple-choice quizzes, kana practice, grammar references, and textbook content
-          from Genki and Marugoto Nihongo.
+          multiple-choice quizzes, kana practice, and comprehensive N5, N4 &amp; N3 grammar references.
         </p>
       </div>
 

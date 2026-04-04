@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
-import { shuffle } from './testUtils';
+import { shuffle, getDirectionLabel } from './testUtils';
 
-export default function MultipleChoice({ pool, words, qtype, onFinish, onBack }) {
+export default function MultipleChoice({ pool, words, qtype, category, onFinish, onBack }) {
   const [idx, setIdx] = useState(0);
   const [score, setScore] = useState({ c: 0, w: 0 });
   const [wrong, setWrong] = useState([]);
@@ -14,6 +14,7 @@ export default function MultipleChoice({ pool, words, qtype, onFinish, onBack })
   const [hintUsed, setHintUsed] = useState(false);
   const [hintVisible, setHintVisible] = useState(false);
   const [started, setStarted] = useState(false);
+  const [done, setDone] = useState(false);
 
   const generateQuestion = useCallback((wordsList, index) => {
     const w = wordsList[index];
@@ -54,24 +55,78 @@ export default function MultipleChoice({ pool, words, qtype, onFinish, onBack })
   const nextQuestion = () => {
     const nextIdx = idx + 1;
     if (nextIdx >= words.length) {
-      onFinish({ score: { c: score.c + (selectedAnswer === correctAnswer ? 0 : 0), w: score.w }, wrong, total: words.length,
-        finalScore: { c: score.c, w: score.w }
-      });
+      setDone(true);
       return;
     }
     setIdx(nextIdx);
     generateQuestion(words, nextIdx);
   };
 
+  // ── Results screen ──────────────────────────────────────
+  if (done) {
+    const total = words.length;
+    const pct = Math.round((score.c / total) * 100);
+    const emoji = pct >= 90 ? '🏆' : pct >= 70 ? '😊' : pct >= 50 ? '🙂' : '💪';
+    const msg = pct >= 90 ? 'Outstanding! 日本語上手！'
+      : pct >= 70 ? 'Great job! Keep it up!'
+      : pct >= 50 ? 'Good effort! Keep practicing!'
+      : "Don't give up! Review and try again!";
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center shadow-md">
+        <div className="text-5xl mb-3">{emoji}</div>
+        <div className="text-4xl font-extrabold mb-1">{pct}%</div>
+        <div className="text-slate-400 mb-6 text-sm">{msg}</div>
+        <div className="flex justify-center gap-8 mb-6 flex-wrap">
+          <div>
+            <div className="text-2xl font-extrabold text-green-600">{score.c}</div>
+            <div className="text-[0.72rem] text-slate-400 font-semibold uppercase">Correct</div>
+          </div>
+          <div>
+            <div className="text-2xl font-extrabold text-red-600">{score.w}</div>
+            <div className="text-[0.72rem] text-slate-400 font-semibold uppercase">Wrong</div>
+          </div>
+          <div>
+            <div className="text-2xl font-extrabold">{total}</div>
+            <div className="text-[0.72rem] text-slate-400 font-semibold uppercase">Total</div>
+          </div>
+        </div>
+        {wrong.length > 0 && (
+          <div className="text-left mb-6">
+            <div className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">
+              ❌ Words to Review ({wrong.length})
+            </div>
+            {wrong.map((item, i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-lg mb-1 bg-red-50 text-sm">
+                <span className="font-bold text-base">{item.word.kana || item.word.kanji}</span>
+                <span className="text-slate-400">—</span>
+                <span className="font-medium">{item.word.english}</span>
+                <span className="text-slate-400 text-xs ml-auto">You chose: "{item.given}"</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <button onClick={onBack}
+          className="px-6 py-3 rounded-lg text-sm font-bold cursor-pointer bg-slate-50 border-2 border-slate-200 text-slate-700 hover:bg-slate-200 transition-colors">
+          ⚙️ New Settings
+        </button>
+      </div>
+    );
+  }
+
   const w = words[idx];
   if (!w) return null;
   const pct = Math.round((idx / words.length) * 100);
-  const isJp2En = currentQtype === 'jp2en';
+  const isJp2En = currentQtype !== 'en2jp';
+  const isKanji = category === 'kanji';
+  const { label: dirLabel, color: dirColor } = getDirectionLabel(category, currentQtype);
+
+  // For kanji: question is kana field (which holds kanji char or english depending on qtype)
+  const questionText = isJp2En ? (w.kana || w.kanji || '') : (w.english || '');
+  const showKanjiFont = isKanji && isJp2En && currentQtype !== 'en2jp';
 
   let hintText = '';
   if (isJp2En) {
-    if (w.kanji && w.kanji !== w.kana) hintText = `Kanji: ${w.kanji}`;
-    else hintText = `Starts with: "${(w.english || '').slice(0, 2)}..."`;
+    hintText = `Starts with: "${(w.english || '').slice(0, 2)}..."`;
   } else {
     const kana = w.kana || w.kanji || '';
     hintText = `Starts with: 「${kana.slice(0, 1)}...」`;
@@ -92,21 +147,26 @@ export default function MultipleChoice({ pool, words, qtype, onFinish, onBack })
 
       <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-4 shadow-md">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${isJp2En ? 'bg-n5-light text-n5' : 'bg-n4-light text-n4'}`}>
-            {isJp2En ? 'Japanese → English' : 'English → Japanese'}
+          <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${dirColor}`}>
+            {dirLabel}
           </div>
-          <button
-            onClick={() => setShowRomaji(prev => !prev)}
-            className={`px-3 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer ${showRomaji ? 'bg-amber-50 text-amber-600 border-amber-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-slate-300'}`}
-          >
-            {showRomaji ? '👁 Romaji ON' : '👁‍🗨 Romaji OFF'}
-          </button>
+          {!isKanji && (
+            <button
+              onClick={() => setShowRomaji(prev => !prev)}
+              className={`px-3 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer ${showRomaji ? 'bg-amber-50 text-amber-600 border-amber-300' : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-slate-300'}`}
+            >
+              {showRomaji ? '👁 Romaji ON' : '👁‍🗨 Romaji OFF'}
+            </button>
+          )}
         </div>
 
-        <div className="text-3xl font-extrabold mb-1.5">
-          {isJp2En ? (w.kana || w.kanji || '') : (w.english || '')}
+        <div
+          className={`font-extrabold mb-1.5 ${showKanjiFont ? 'text-6xl' : isJp2En ? 'text-3xl' : 'text-2xl'}`}
+          style={showKanjiFont ? { fontFamily: 'Noto Sans JP, sans-serif' } : {}}
+        >
+          {questionText}
         </div>
-        {showRomaji && <div className="text-sm text-slate-400 mb-2 italic">Romaji: {w.romaji || '?'}</div>}
+        {!isKanji && showRomaji && <div className="text-sm text-slate-400 mb-2 italic">Romaji: {w.romaji || '?'}</div>}
 
         <div className="mb-5">
           {!hintVisible && !answered && (
