@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useData, displayName, getLevel, shuffle } from '../../context/DataContext';
 import MultipleChoice from './MultipleChoice';
 import MatchCards from './MatchCards';
@@ -119,7 +120,11 @@ export default function TestPage() {
 
   const allKanjiSecs = [...n5KanjiSecs, ...n4KanjiSecs, ...n3KanjiSecs];
 
-  const [phase, setPhase] = useState('setup');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+  const isPlaying = searchParams.get('phase') === 'playing';
+
   const [category, setCategory] = useState('vocab');
   const [level, setLevel] = useState('all');
   const [section, setSection] = useState('all');
@@ -131,18 +136,6 @@ export default function TestPage() {
   const [mode, setMode] = useState('choice');
   const [gamePool, setGamePool] = useState([]);
   const [gameWords, setGameWords] = useState([]);
-
-  // Intercept Android hardware back button
-  useEffect(() => {
-    const handleHardwareBack = (e) => {
-      if (phase !== 'setup') {
-        e.preventDefault();
-        setPhase('setup');
-      }
-    };
-    window.addEventListener('hardwareBack', handleHardwareBack);
-    return () => window.removeEventListener('hardwareBack', handleHardwareBack);
-  }, [phase]);
 
   const isKana = category === 'hiragana' || category === 'katakana';
   const isKanji = category === 'kanji';
@@ -176,15 +169,15 @@ export default function TestPage() {
     const w = shuffle(p).slice(0, n);
     setGamePool(p);
     setGameWords(w);
-    setPhase('playing');
+    navigate('?phase=playing');
   };
 
   /* ── Playing phase ── */
-  if (phase !== 'setup') {
+  if (isPlaying) {
     const commonProps = {
       pool: gamePool, words: gameWords, qtype, category,
-      onBack: () => setPhase('setup'),
-      onFinish: () => setPhase('setup'),
+      onBack: () => navigate(-1),
+      onFinish: () => navigate(-1),
     };
 
     if (mode === 'flash') {
@@ -199,7 +192,7 @@ export default function TestPage() {
       <div className="max-w-2xl mx-auto page-enter">
         <div className="flex justify-end mb-3">
           <button
-            onClick={() => setPhase('setup')}
+            onClick={() => navigate(-1)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-all cursor-pointer border-none text-xs font-semibold"
           >
             ✕ Exit Test

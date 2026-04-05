@@ -120,9 +120,7 @@ function BackButtonHandler() {
   const location = useLocation();
 
   useEffect(() => {
-    let activeListener = null;
-
-    CapApp.addListener('backButton', ({ canGoBack }) => {
+    const listenerPromise = CapApp.addListener('backButton', ({ canGoBack }) => {
       // Allow components to intercept the back button
       const customEvent = new CustomEvent('hardwareBack', { cancelable: true });
       window.dispatchEvent(customEvent);
@@ -141,10 +139,12 @@ function BackButtonHandler() {
       } else {
         navigate(-1);
       }
-    }).then(listener => { activeListener = listener; });
+    });
 
     return () => {
-      if (activeListener) activeListener.remove();
+      listenerPromise.then(listener => {
+        if (listener) listener.remove();
+      });
     };
   }, [location, navigate]);
 
