@@ -94,6 +94,7 @@ export default function Flashcards({ pool, words: rawWords, qtype, category, onF
   const [history, setHistory] = useState([]);
   const [trackProgress, setTrackProgress] = useState(true);
   const [animDir, setAnimDir] = useState(null); // 'left' | 'right'
+  const [noTransition, setNoTransition] = useState(false);
 
   const total = cards.length;
   const isKanji = category === 'kanji';
@@ -121,11 +122,13 @@ export default function Flashcards({ pool, words: rawWords, qtype, category, onF
     if (idx >= total || !flipped) return;
     setAnimDir('right');
     setTimeout(() => {
+      setNoTransition(true);
       setHistory(h => [...h, { type: 'know', card: current, idx }]);
       setKnown(prev => [...prev, current]);
       setIdx(i => i + 1);
       setFlipped(false);
       setAnimDir(null);
+      setTimeout(() => setNoTransition(false), 50);
     }, 220);
   }, [idx, total, flipped, current]);
 
@@ -133,22 +136,26 @@ export default function Flashcards({ pool, words: rawWords, qtype, category, onF
     if (idx >= total || !flipped) return;
     setAnimDir('left');
     setTimeout(() => {
+      setNoTransition(true);
       setHistory(h => [...h, { type: 'learning', card: current, idx }]);
       setLearning(prev => [...prev, current]);
       setIdx(i => i + 1);
       setFlipped(false);
       setAnimDir(null);
+      setTimeout(() => setNoTransition(false), 50);
     }, 220);
   }, [idx, total, flipped, current]);
 
   const undo = useCallback(() => {
     if (history.length === 0) return;
     const last = history[history.length - 1];
+    setNoTransition(true);
     setHistory(h => h.slice(0, -1));
     if (last.type === 'know') setKnown(prev => prev.slice(0, -1));
     else setLearning(prev => prev.slice(0, -1));
     setIdx(last.idx);
     setFlipped(false);
+    setTimeout(() => setNoTransition(false), 50);
   }, [history]);
 
   const reshuffleCards = useCallback(() => {
@@ -326,7 +333,7 @@ export default function Flashcards({ pool, words: rawWords, qtype, category, onF
             position: 'relative',
             transformStyle: 'preserve-3d',
             transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-            transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: noTransition ? 'none' : 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
           }}>
             {/* ── Front ── */}
             <div className="absolute inset-0 flex flex-col items-center justify-center p-8 rounded-2xl bg-white border border-slate-200 shadow-lg backface-hidden"
