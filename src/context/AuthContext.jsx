@@ -15,8 +15,20 @@ export function AuthProvider({ children }) {
       .select('name, email, role')
       .eq('id', authUser.id)
       .single();
+    
+    // Merge DB profile with authUser metadata
+    const meta = authUser.user_metadata || {};
+    
     if (data) {
-      const profile = { id: authUser.id, name: data.name, email: data.email, role: data.role };
+      const profile = { 
+        id: authUser.id, 
+        name: data.name, 
+        email: data.email, 
+        role: data.role,
+        age: meta.age || '',
+        level: meta.level || '',
+        goal: meta.goal || ''
+      };
       setUser(profile);
       return profile;
     }
@@ -24,9 +36,12 @@ export function AuthProvider({ children }) {
     // Fallback to auth metadata
     const fallback = {
       id: authUser.id,
-      name: authUser.user_metadata?.name || '',
+      name: meta.name || '',
       email: authUser.email,
-      role: authUser.user_metadata?.role || 'user',
+      role: meta.role || 'user',
+      age: meta.age || '',
+      level: meta.level || '',
+      goal: meta.goal || ''
     };
     setUser(fallback);
     return fallback;
@@ -58,11 +73,11 @@ export function AuthProvider({ children }) {
   };
 
   /* ── Register ── */
-  const register = async (name, email, password) => {
+  const register = async (name, email, password, meta = {}) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name, role: 'user' } },
+      options: { data: { name, role: 'user', ...meta } },
     });
     if (error) return { error: error.message };
     if (data.user) await fetchProfile(data.user);
@@ -75,13 +90,24 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  /* ── Update profile metadata ── */
+  const updateProfileMeta = async (updates) => {
+    if (!user) return { error: 'Not logged in' };
+    const { data, error } = await supabase.auth.updateUser({ data: updates });
+    if (error) return { error: error.message };
+    
+    // Also update name in profiles table if it's there
+    if (updates.name) {
+      await supabase.from('profiles').update({ name: updates.name }).eq('id', user.id);
+    }
+    
+    if (data.user) await fetchProfile(data.user);
+    return { ok: true };
+  };
+
   /* ── Update name ── */
   const updateName = async (newName) => {
-    if (!user) return { error: 'Not logged in' };
-    const { error } = await supabase.from('profiles').update({ name: newName }).eq('id', user.id);
-    if (error) return { error: error.message };
-    setUser(u => ({ ...u, name: newName }));
-    return { ok: true };
+    return updateProfileMeta({ name: newName });
   };
 
   /* ── Change password ── */
@@ -92,7 +118,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateName, changePassword }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateName, updateProfileMeta, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

@@ -4,21 +4,27 @@ import { useAuth } from '../../context/AuthContext';
 import logo from '../../assets/icons/logo.png';
 
 export default function ProfilePage() {
-  const { user, logout, updateName, changePassword } = useAuth();
+  const { user, logout, updateProfileMeta, changePassword } = useAuth();
   const navigate = useNavigate();
 
   const [editName, setEditName]       = useState(false);
-  const [newName, setNewName]         = useState(user?.name || '');
+  const [profileForm, setProfileForm] = useState({ 
+    name: user?.name || '',
+    age: user?.age || '',
+    level: user?.level || 'Beginner',
+    goal: user?.goal || ''
+  });
   const [editPass, setEditPass]       = useState(false);
   const [passForm, setPassForm]       = useState({ next: '', confirm: '' });
   const [msg, setMsg]                 = useState({ text: '', ok: true });
 
-  /* ── Save name ── */
-  const saveName = async () => {
-    if (!newName.trim()) return;
-    const result = await updateName(newName.trim());
+  /* ── Save Profile Details (Name & Metadata) ── */
+  const saveProfile = async () => {
+    if (!profileForm.name.trim()) return;
+    const { name, age, level, goal } = profileForm;
+    const result = await updateProfileMeta({ name: name.trim(), age, level, goal });
     if (result.error) setMsg({ text: result.error, ok: false });
-    else { setEditName(false); setMsg({ text: 'Name updated', ok: true }); }
+    else { setEditName(false); setMsg({ text: 'Profile updated', ok: true }); }
   };
 
   /* ── Save password ── */
@@ -55,29 +61,89 @@ export default function ProfilePage() {
 
       {/* ── Account info ── */}
       <div className="bg-white rounded-2xl border border-slate-200 mb-4 overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100">
+        <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
           <p className="text-[0.65rem] font-bold uppercase tracking-widest text-slate-400">Account Details</p>
+          <button onClick={() => setEditName(e => !e)} className="text-xs text-blue-500 font-medium border-none bg-transparent cursor-pointer">
+            {editName ? 'Cancel' : 'Edit Profile'}
+          </button>
         </div>
 
-        {/* Name row */}
+        {/* Profile Details */}
         <div className="px-5 py-4 border-b border-slate-100">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Full Name</span>
-            <button onClick={() => setEditName(e => !e)} className="text-xs text-blue-500 font-medium border-none bg-transparent cursor-pointer">
-              {editName ? 'Cancel' : 'Edit'}
-            </button>
-          </div>
           {editName ? (
-            <div className="flex gap-2 mt-2">
-              <input
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:border-blue-400 focus:outline-none"
-              />
-              <button onClick={saveName} className="px-4 py-2 gradient-btn text-white text-xs font-semibold rounded-xl border-none cursor-pointer">Save</button>
+            <div className="space-y-3 mt-1">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Full Name</label>
+                <input
+                  value={profileForm.name}
+                  onChange={e => setProfileForm({ ...profileForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:border-blue-400 focus:outline-none"
+                />
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Age</label>
+                  <input
+                    type="number"
+                    value={profileForm.age}
+                    onChange={e => setProfileForm({ ...profileForm, age: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:border-blue-400 focus:outline-none"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">JLPT Level</label>
+                  <select
+                    value={profileForm.level}
+                    onChange={e => setProfileForm({ ...profileForm, level: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:border-blue-400 focus:outline-none"
+                  >
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Goal</label>
+                <select
+                  value={profileForm.goal}
+                  onChange={e => setProfileForm({ ...profileForm, goal: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:border-blue-400 focus:outline-none"
+                >
+                  <option value="">Select a goal</option>
+                  <option value="JLPT Preparation">JLPT Preparation</option>
+                  <option value="Travel to Japan">Travel to Japan</option>
+                  <option value="Watch Anime / Pop Culture">Watch Anime / Pop Culture</option>
+                  <option value="Career / Work">Career / Work</option>
+                </select>
+              </div>
+              <button 
+                onClick={saveProfile} 
+                className="w-full py-2.5 gradient-btn text-white text-sm font-semibold rounded-xl border-none cursor-pointer mt-2">
+                Save Changes
+              </button>
             </div>
           ) : (
-            <p className="text-sm font-medium text-slate-800">{user?.name}</p>
+            <div className="space-y-4">
+              <div>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">Full Name</span>
+                <p className="text-sm font-medium text-slate-800">{user?.name}</p>
+              </div>
+              <div className="flex gap-6">
+                <div>
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">Age</span>
+                  <p className="text-sm font-medium text-slate-800">{user?.age || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">Level</span>
+                  <p className="text-sm font-medium text-slate-800">{user?.level || '—'}</p>
+                </div>
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">Goal</span>
+                <p className="text-sm font-medium text-slate-800">{user?.goal || '—'}</p>
+              </div>
+            </div>
           )}
         </div>
 

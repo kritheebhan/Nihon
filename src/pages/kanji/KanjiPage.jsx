@@ -379,13 +379,10 @@ export default function KanjiPage() {
                       <td className="px-4 py-3 text-sm text-slate-600 hidden sm:table-cell" style={{ fontFamily: 'Noto Sans JP, sans-serif' }}>{item.example || '—'}</td>
                       <td className="px-4 py-3 text-xs text-blue-500 hidden sm:table-cell">{item.exEnglish || '—'}</td>
                       <td className="px-4 py-3"><span className={badgeClass}>{level}</span></td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => setModalItem(item)}
-                          className="text-[0.68rem] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 px-2 py-1 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
-                        >
-                          Stroke Order
-                        </button>
+                      <td className="px-4 py-3 align-middle">
+                        <div onClick={e => e.stopPropagation()} className="min-w-[120px] max-w-[200px]">
+                          <StrokeSteps kanji={item.kanji} size={28} hideLabel={true} />
+                        </div>
                       </td>
                     </tr>
                   );

@@ -1,5 +1,6 @@
 import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { App as CapApp } from '@capacitor/app';
 import { useAuth } from './context/AuthContext';
 import Header from './components/Header';
 import { BottomTabBar } from './components/TabBar';
@@ -114,6 +115,37 @@ function RequireAdmin({ children }) {
   return children;
 }
 
+function BackButtonHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    let activeListener = null;
+
+    CapApp.addListener('backButton', ({ canGoBack }) => {
+      const isHome = 
+        location.pathname === '/app' || 
+        location.pathname === '/admin' || 
+        location.pathname === '/welcome' || 
+        location.pathname === '/login' || 
+        location.pathname === '/' ||
+        location.pathname === '/register';
+
+      if (isHome) {
+        CapApp.exitApp();
+      } else {
+        navigate(-1);
+      }
+    }).then(listener => { activeListener = listener; });
+
+    return () => {
+      if (activeListener) activeListener.remove();
+    };
+  }, [location, navigate]);
+
+  return null;
+}
+
 export default function App() {
   const { user, loading } = useAuth();
   const homeRoute = user?.role === 'admin' ? '/admin' : '/app';
@@ -130,8 +162,10 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/"         element={<SplashPage />} />
+    <>
+      <BackButtonHandler />
+      <Routes>
+        <Route path="/"         element={<SplashPage />} />
       <Route path="/welcome"  element={user ? <Navigate to={homeRoute} replace /> : <LandingPage />} />
       <Route path="/login"    element={user ? <Navigate to={homeRoute} replace /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to={homeRoute} replace /> : <RegisterPage />} />
@@ -150,5 +184,6 @@ export default function App() {
       <Route path="/app/*" element={<RequireAuth><ProtectedApp /></RequireAuth>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }

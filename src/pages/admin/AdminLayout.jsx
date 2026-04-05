@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import logo from '../../assets/icons/logo.png';
@@ -32,14 +33,22 @@ const NAV = [
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login', { replace: true }); };
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
+      {/* ── Mobile Backdrop ── */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden" 
+          onClick={() => setSidebarOpen(false)} 
+        />
+      )}
 
       {/* ── Sidebar ── */}
-      <aside className="w-60 shrink-0 bg-slate-900 flex flex-col min-h-screen fixed top-0 left-0 bottom-0 z-40">
+      <aside className={`w-60 shrink-0 bg-slate-900 flex flex-col min-h-screen fixed top-0 left-0 bottom-0 z-40 transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         {/* Logo */}
         <div className="flex items-center gap-3 px-5 h-16 border-b border-slate-700/60">
           <img src={logo} alt="Nihongo" className="w-8 h-8 object-contain" />
@@ -54,6 +63,7 @@ export default function AdminLayout() {
           {NAV.map(({ to, end, label, icon }) => (
             <NavLink
               key={to} to={to} end={end}
+              onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium no-underline transition-colors ${
                   isActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -88,12 +98,20 @@ export default function AdminLayout() {
       </aside>
 
       {/* ── Main content ── */}
-      <div className="flex-1 ml-60 min-h-screen flex flex-col">
+      <div className="flex-1 md:ml-60 min-h-screen flex flex-col w-full">
         {/* Top bar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-30">
-          <div>
-            <h1 className="text-sm font-semibold text-slate-800">Admin Dashboard</h1>
-            <p className="text-[0.65rem] text-slate-400">Nihongo Management Panel</p>
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setSidebarOpen(true)} 
+              className="md:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg border-none bg-transparent cursor-pointer"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+            </button>
+            <div>
+              <h1 className="text-sm font-semibold text-slate-800">Admin Dashboard</h1>
+              <p className="text-[0.65rem] text-slate-400 hidden sm:block">Nihongo Management Panel</p>
+            </div>
           </div>
           <span className="flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-100 text-red-600 text-xs font-semibold rounded-full">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block animate-pulse" />
