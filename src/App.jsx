@@ -123,6 +123,11 @@ function BackButtonHandler() {
     let activeListener = null;
 
     CapApp.addListener('backButton', ({ canGoBack }) => {
+      // Allow components to intercept the back button
+      const customEvent = new CustomEvent('hardwareBack', { cancelable: true });
+      window.dispatchEvent(customEvent);
+      if (customEvent.defaultPrevented) return;
+
       const isHome = 
         location.pathname === '/app' || 
         location.pathname === '/admin' || 

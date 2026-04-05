@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useData, displayName, getLevel, shuffle } from '../../context/DataContext';
 import MultipleChoice from './MultipleChoice';
 import MatchCards from './MatchCards';
@@ -131,6 +131,18 @@ export default function TestPage() {
   const [mode, setMode] = useState('choice');
   const [gamePool, setGamePool] = useState([]);
   const [gameWords, setGameWords] = useState([]);
+
+  // Intercept Android hardware back button
+  useEffect(() => {
+    const handleHardwareBack = (e) => {
+      if (phase !== 'setup') {
+        e.preventDefault();
+        setPhase('setup');
+      }
+    };
+    window.addEventListener('hardwareBack', handleHardwareBack);
+    return () => window.removeEventListener('hardwareBack', handleHardwareBack);
+  }, [phase]);
 
   const isKana = category === 'hiragana' || category === 'katakana';
   const isKanji = category === 'kanji';
