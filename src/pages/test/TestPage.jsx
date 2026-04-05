@@ -424,7 +424,13 @@ export default function TestPage() {
             return (
               <button
                 key={m.id}
-                onClick={() => setMode(m.id)}
+                onClick={() => {
+                  if (active) {
+                    startTest();
+                  } else {
+                    setMode(m.id);
+                  }
+                }}
                 className="td-mode-card"
                 style={{
                   textAlign: 'left',
